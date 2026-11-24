@@ -46,6 +46,12 @@ These rules were settled while building the app and take precedence over the gen
   stranger can trigger (`Readout.RateLimit`, keyed by `ReadoutWeb.ClientIP`).
 - **Analytics**: the client never reports durations. Anything time-based is measured on the server
   (`Readout.Analytics.Tracker`). Live analytics messages carry ids only; re-read through the scope.
+- **Notifications** go through `Readout.Notifications` (Oban job, built at send time, workspace
+  notification language). HTTP calls use `Req` with options from config so tests can stub them
+  with `Req.Test`.
+- **Deployment**: configuration comes only from environment variables (`config/runtime.exs`).
+  New system tools must be added to the `Dockerfile` runner stage and to
+  `Readout.Documents.Tools.missing/0`.
 - **Tests that change application config** go in `test/readout/global_config_test.exs` (async: false).
 - **Uploads** open via `JS.dispatch("readout:pick-file")` (the shell's uploader) or
   `<.button for={@uploads.x.ref}>` for a page's own upload. Validate files by content

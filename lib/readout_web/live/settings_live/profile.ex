@@ -113,16 +113,29 @@ defmodule ReadoutWeb.SettingsLive.Profile do
             <div>
               <h2 class="text-md font-semibold text-fg">{gettext("Notifications")}</h2>
               <p class="mt-1 text-sm text-fg-muted">
-                {gettext("Choose per document later, from each document's menu.")}
+                {gettext("Follow or mute any document with the bell on its page.")}
               </p>
             </div>
             <.card>
-              <.input
-                field={@form[:notifications_enabled]}
-                type="switch"
-                label={gettext("Notify me about my documents")}
-                hint={gettext("When someone opens a document you own, and when they finish reading.")}
-              />
+              <div class="space-y-5">
+                <.input
+                  field={@form[:notifications_enabled]}
+                  type="switch"
+                  label={gettext("Notify me about my documents")}
+                  hint={
+                    gettext("When someone opens a document you own, and when they finish reading.")
+                  }
+                />
+                <.input
+                  field={@form[:chat_username]}
+                  label={gettext("Rocket.Chat username")}
+                  placeholder="alex.morgan"
+                  hint={
+                    gettext("Optional. You'll be @mentioned in the team channel's notifications.")
+                  }
+                  autocomplete="off"
+                />
+              </div>
             </.card>
           </section>
 

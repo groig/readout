@@ -1,0 +1,29 @@
+# Readout behind Caddy. Caddy handles TLS, HSTS and the tailnet-only rule for
+# internal tools; everything else (the app, sign-in, invitations, /v/* links)
+# is public.
+
+share.example.com {
+	encode zstd gzip
+
+	# Internal tools (LiveDashboard, …) only from the tailnet.
+	@internal path /dev/*
+	@not_tailnet not remote_ip 100.64.0.0/10 fd7a:115c:a1e0::/48
+	handle @internal {
+		respond @not_tailnet 404
+		reverse_proxy app:4000
+	}
+
+	# Uploads up to MAX_UPLOAD_MB (plus headroom).
+	request_body {
+		max_size 110MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Caddy sets X-Forwarded-For and X-Forwarded-Proto; Readout trusts them
+	# only from TRUSTED_PROXIES.
+	reverse_proxy app:4000
+}

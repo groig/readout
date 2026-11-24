@@ -143,9 +143,10 @@ defmodule ReadoutWeb.AnalyticsLive do
                   </p>
                   <p class="truncate text-xs text-fg-subtle">
                     {gettext("via «%{link}»", link: v.link.name)} · {gettext(
-                      "%{pages}/%{count} pages", pages: v.pages_viewed, count: v.page_count || "?")} · {Format.duration(
-                      div(v.duration_ms, 1000)
-                    )}
+                      "%{pages}/%{count} pages",
+                      pages: v.pages_viewed,
+                      count: v.page_count || "?"
+                    )} · {Format.duration(div(v.duration_ms, 1000))}
                   </p>
                 </div>
                 <.badge :if={MapSet.member?(@live_ids, v.id)} tone="success" pulse>

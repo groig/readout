@@ -23,6 +23,7 @@ defmodule Readout.Accounts.User do
     field :timezone, :string
     field :theme, :string, default: "system"
     field :notifications_enabled, :boolean, default: true
+    field :chat_username, :string
     field :deactivated_at, :utc_datetime
     field :last_active_at, :utc_datetime
 
@@ -75,7 +76,20 @@ defmodule Readout.Accounts.User do
   @doc "A changeset for the profile and preferences a user edits themselves."
   def profile_changeset(user, attrs) do
     user
-    |> cast(attrs, [:name, :avatar_color, :locale, :timezone, :theme, :notifications_enabled])
+    |> cast(attrs, [
+      :name,
+      :avatar_color,
+      :locale,
+      :timezone,
+      :theme,
+      :notifications_enabled,
+      :chat_username
+    ])
+    |> update_change(:chat_username, &(&1 |> String.trim() |> String.trim_leading("@")))
+    |> validate_format(:chat_username, ~r/^[A-Za-z0-9._-]*$/,
+      message: "can only contain letters, numbers, dots, dashes and underscores"
+    )
+    |> validate_length(:chat_username, max: 60)
     |> validate_required([:name])
     |> validate_length(:name, max: 80)
     |> validate_inclusion(:avatar_color, @avatar_colors)

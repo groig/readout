@@ -57,4 +57,73 @@ defmodule Readout.GlobalConfigTest do
     :ok = Oban.Testing.perform_job(Readout.Mailer.DeliverJob, job.args, repo: Readout.Repo)
     assert_email_sent(to: "b@x.com")
   end
+
+  describe "Rocket.Chat notifications" do
+    setup do
+      put_env(:rocketchat_webhook_url, "https://chat.example/hooks/abc")
+      owner = owner_fixture(chat_username: "alex")
+      scope = Scope.for_user(owner)
+      {doc, link} = shared_fixture(scope)
+      %{scope: scope, doc: doc, link: link}
+    end
+
+    test "opening a link posts to the webhook", %{link: link} do
+      parent = self()
+
+      Req.Test.stub(Readout.Notifications, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        send(parent, {:posted, Jason.decode!(body)})
+        Req.Test.json(conn, %{success: true})
+      end)
+
+      {:ok, link} = Links.fetch_public_link(link.slug)
+      _visit = Links.start_visit(link, %{email: "ana@client.com"})
+
+      [job] = Oban.Testing.all_enqueued(Readout.Repo, worker: Readout.Notifications.RocketChatJob)
+
+      assert :ok =
+               Oban.Testing.perform_job(Readout.Notifications.RocketChatJob, job.args,
+                 repo: Readout.Repo
+               )
+
+      assert_received {:posted, %{"text" => text, "alias" => "Readout"}}
+      assert text =~ "ana@client.com opened"
+      assert text =~ "@alex"
+    end
+
+    test "Rocket.Chat errors are retried", %{link: link} do
+      Req.Test.stub(Readout.Notifications, &Plug.Conn.send_resp(&1, 500, "down"))
+      {:ok, link} = Links.fetch_public_link(link.slug)
+      _ = Links.start_visit(link, %{})
+      [job] = Oban.Testing.all_enqueued(Readout.Repo, worker: Readout.Notifications.RocketChatJob)
+
+      assert {:error, {:http_status, 500}} =
+               Oban.Testing.perform_job(Readout.Notifications.RocketChatJob, job.args,
+                 repo: Readout.Repo
+               )
+    end
+
+    test "documents nobody follows stay quiet", %{scope: scope, doc: doc, link: link} do
+      {:ok, _} = Readout.Notifications.set_subscription(scope, doc, false)
+      {:ok, link} = Links.fetch_public_link(link.slug)
+      _ = Links.start_visit(link, %{})
+      [job] = Oban.Testing.all_enqueued(Readout.Repo, worker: Readout.Notifications.RocketChatJob)
+      # No stub: posting would fail the test.
+      assert :ok =
+               Oban.Testing.perform_job(Readout.Notifications.RocketChatJob, job.args,
+                 repo: Readout.Repo
+               )
+    end
+  end
+
+  test "without a webhook, nothing is queued" do
+    put_env(:rocketchat_webhook_url, nil)
+    scope = Scope.for_user(user_fixture())
+    {_doc, link} = shared_fixture(scope)
+    {:ok, link} = Links.fetch_public_link(link.slug)
+    _ = Links.start_visit(link, %{})
+
+    assert [] =
+             Oban.Testing.all_enqueued(Readout.Repo, worker: Readout.Notifications.RocketChatJob)
+  end
 end

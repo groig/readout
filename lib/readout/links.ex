@@ -238,6 +238,7 @@ defmodule Readout.Links do
     }
     |> Repo.insert!()
     |> tap(&Readout.Analytics.broadcast(:visit_started, &1))
+    |> tap(&Readout.Notifications.visit_started/1)
   end
 
   def get_visit(id) do
@@ -251,7 +252,11 @@ defmodule Readout.Links do
       from(v in Visit, where: v.id == ^visit.id and is_nil(v.ended_at))
       |> Repo.update_all(set: [ended_at: now, last_seen_at: now])
 
-    if count > 0, do: Readout.Analytics.broadcast(:visit_ended, visit)
+    if count > 0 do
+      Readout.Analytics.broadcast(:visit_ended, visit)
+      Readout.Notifications.visit_ended(visit)
+    end
+
     :ok
   end
 end

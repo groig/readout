@@ -144,6 +144,33 @@ built email **encrypted with `SECRET_KEY_BASE`**, so tokens and codes are never 
 sign-in link and password-reset options are hidden, and links can't enable verification.
 Production SMTP: STARTTLS on 587 with certificate and hostname verification (Office 365).
 
+## Notifications (milestone 5)
+
+`Readout.Notifications` posts to a Rocket.Chat incoming webhook (`ROCKETCHAT_WEBHOOK_URL`) from
+an Oban job (`RocketChatJob`, 5 attempts) when a visit starts ("ana@client.com opened «Q3 Report»
+via the «Client X» link") and when it ends with reading (pages seen, total time, top page), in the
+workspace's notification language, with a link to the visit in analytics.
+
+Per user and document (**document_subscriptions**; the bell on the document page): by default you
+follow documents you own, if your profile's notification switch is on. A document posts only
+when at least one active person who can see it follows it; followers with a Rocket.Chat username
+(profile) are @mentioned, so the channel post reaches them personally.
+
+## Deployment (milestone 5)
+
+- `Dockerfile` (from `mix phx.gen.release --docker`): Debian trixie runner with poppler-utils,
+  webp, `libreoffice-{writer,impress}-nogui`, fonts (Carlito/Caladea for Calibri/Cambria,
+  Liberation, DejaVu, Noto), tini as init, a non-root `readout` user, `/data` volume, and a
+  `HEALTHCHECK` on `/healthz`.
+- `bin/server` runs migrations, then starts the release.
+- `ReadoutWeb.Plugs.Health` answers `/healthz` before sessions and logging (database + storage).
+- Behind Caddy: `ReadoutWeb.ClientIP` trusts `X-Forwarded-For` and `X-Forwarded-Proto` only from
+  `TRUSTED_PROXIES`, so client IPs are real and cookies are `Secure` (session cookies are always
+  `Secure` in production).
+- `/dev/*` holds the internal tools (LiveDashboard in production, plus the mailbox and style
+  guide in development); one Caddy rule keeps the prefix tailnet-only, and LiveDashboard also
+  requires an owner or admin.
+
 ## Client IPs
 
 `ReadoutWeb.ClientIP` (plug and LiveView) trusts `X-Forwarded-For` only from `TRUSTED_PROXIES`
@@ -212,6 +239,18 @@ Team members get page images and downloads from `DocumentFileController`, which 
 milestone 3.)
 
 ## Security notes
+
+- Everything is private except `/v/*` (what a valid link exposes), sign-in, setup, invitations and
+  password reset. Files are never served statically.
+- Headers: strict CSP with nonces, `frame-ancestors 'none'`, `X-Content-Type-Options`,
+  `Referrer-Policy` (`no-referrer` on the viewer), `Permissions-Policy`, `X-Robots-Tag: noindex`
+  on the viewer; HSTS from Caddy.
+- Rate limits: gate attempts (10 per 10 min per link and client), code sends (3 per email and link
+  per 15 min, 10 per client), code checks (20 per 10 min), sign-in and reset emails (5 per address
+  per 15 min).
+- Secrets at rest: passwords and link passwords (bcrypt), invitation tokens (SHA-256), session and
+  email tokens (hashed, from phx.gen.auth), verification codes (HMAC), queued emails (encrypted
+  with `SECRET_KEY_BASE`).
 
 - A strict CSP with a per-request nonce: scripts come only from our origin, there is no
   `unsafe-eval`, and there are no inline event handlers. Inline styles are allowed because

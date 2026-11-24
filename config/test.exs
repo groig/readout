@@ -55,3 +55,6 @@ config :readout, Readout.Storage,
 
 # Tests use generated databases (Readout.GeoIPFixture), never the dev one.
 config :readout, :geoip_db_path, nil
+
+# Rocket.Chat posts go to Req.Test stubs.
+config :readout, :rocketchat_req_options, plug: {Req.Test, Readout.Notifications}

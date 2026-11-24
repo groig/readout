@@ -307,6 +307,15 @@ defmodule ReadoutWeb.UserAuth do
     end
   end
 
+  @doc "Plug for internal tools: owners and admins only."
+  def require_workspace_admin(conn, _opts) do
+    if Readout.Policy.can?(conn.assigns.current_scope, :manage_members, :workspace) do
+      conn
+    else
+      conn |> send_resp(404, "Not found") |> halt()
+    end
+  end
+
   defp maybe_store_return_to(%{method: "GET"} = conn) do
     put_session(conn, :user_return_to, current_path(conn))
   end

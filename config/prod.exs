@@ -30,3 +30,6 @@ config :logger, level: :info
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
+
+# Session cookies only over HTTPS (TLS terminates at Caddy).
+config :readout, :secure_cookies, true

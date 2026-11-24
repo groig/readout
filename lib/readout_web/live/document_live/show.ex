@@ -44,6 +44,19 @@ defmodule ReadoutWeb.DocumentLive.Show do
         >
           {gettext("New version")}
         </.button>
+        <.icon_button
+          :if={@notifications_enabled}
+          id="notify-toggle"
+          icon={if(@subscribed, do: "hero-bell-alert-mini", else: "hero-bell-slash-mini")}
+          label={
+            if @subscribed,
+              do: gettext("Notifications on: click to stop"),
+              else: gettext("Notify me about this document")
+          }
+          class={@subscribed && "text-accent-fg"}
+          aria-pressed={to_string(@subscribed)}
+          phx-click="toggle_notifications"
+        />
         <.dropdown id="document-actions">
           <:trigger>
             <.icon_button icon="hero-ellipsis-horizontal-mini" label={gettext("More actions")} />
@@ -537,6 +550,8 @@ defmodule ReadoutWeb.DocumentLive.Show do
     |> assign(:can_edit, Policy.can?(scope, :edit_document, document))
     |> assign(:can_manage, Policy.can?(scope, :manage_document, document))
     |> assign(:candidates, candidates)
+    |> assign(:notifications_enabled, Readout.Notifications.enabled?())
+    |> assign(:subscribed, Readout.Notifications.subscribed?(scope, document))
     |> assign(:title_form, to_form(Documents.change_title(document)))
     |> load_pages()
   end
@@ -623,6 +638,23 @@ defmodule ReadoutWeb.DocumentLive.Show do
     case Links.get_link(socket.assigns.document, id) do
       nil -> {:noreply, socket}
       link -> {:noreply, open_link(socket, link)}
+    end
+  end
+
+  def handle_event("toggle_notifications", _params, socket) do
+    %{current_scope: scope, document: document, subscribed: subscribed} = socket.assigns
+
+    case Readout.Notifications.set_subscription(scope, document, !subscribed) do
+      {:ok, _} ->
+        message =
+          if subscribed,
+            do: gettext("You won't get notifications for this document."),
+            else: gettext("You'll get a notification when someone reads this document.")
+
+        {:noreply, socket |> assign(:subscribed, !subscribed) |> put_flash(:info, message)}
+
+      {:error, _} ->
+        {:noreply, socket}
     end
   end
 

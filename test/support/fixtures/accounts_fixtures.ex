@@ -26,10 +26,15 @@ defmodule Readout.AccountsFixtures do
   def user_fixture(attrs \\ %{}) do
     attrs = Map.new(attrs)
     {role, attrs} = Map.pop(attrs, :role, :member)
+    # Profile-only fields are set after creation, as people do in their profile.
+    {profile, attrs} =
+      Map.split(attrs, [:chat_username, :notifications_enabled, :avatar_color, :theme])
 
     %User{}
     |> User.create_changeset(valid_user_attributes(attrs), role)
     |> Repo.insert!()
+    |> Ecto.Changeset.change(profile)
+    |> Repo.update!()
   end
 
   def owner_fixture(attrs \\ %{}), do: user_fixture(Map.put(Map.new(attrs), :role, :owner))

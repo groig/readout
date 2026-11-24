@@ -145,3 +145,23 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "must have the @ sign and no spaces"
 msgstr ""
+
+#: lib/readout_web/error_messages.ex:22
+#, elixir-autogen, elixir-format
+msgid "can only contain letters, numbers, dots, dashes and underscores"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:20
+#, elixir-autogen, elixir-format
+msgid "has invalid entries: %{entries}"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:19
+#, elixir-autogen, elixir-format
+msgid "must be in the future"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:21
+#, elixir-autogen, elixir-format
+msgid "needs email (SMTP) to be configured"
+msgstr ""

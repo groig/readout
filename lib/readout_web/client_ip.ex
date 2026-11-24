@@ -19,7 +19,16 @@ defmodule ReadoutWeb.ClientIP do
   @impl Plug
   def call(conn, _opts) do
     forwarded = Plug.Conn.get_req_header(conn, "x-forwarded-for")
-    %{conn | remote_ip: resolve(conn.remote_ip, forwarded)}
+    from_proxy? = trusted?(conn.remote_ip, trusted())
+
+    conn = %{conn | remote_ip: resolve(conn.remote_ip, forwarded)}
+
+    # Caddy terminates TLS: trust its X-Forwarded-Proto so cookies are Secure
+    # and generated URLs use https.
+    case from_proxy? && Plug.Conn.get_req_header(conn, "x-forwarded-proto") do
+      ["https" | _] -> %{conn | scheme: :https, port: 443}
+      _ -> conn
+    end
   end
 
   @doc "The client IP of a LiveView socket, as a string (or nil)."

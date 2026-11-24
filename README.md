@@ -7,9 +7,19 @@ which pages they read and for how long, live.
 It is free software, runs as one Docker Compose stack behind Caddy, and keeps every file and every
 analytics event on our own server. Nothing is sent to third parties.
 
-> Status: milestones 1–4 are done: foundation; documents; share links and the public viewer with
-> email; reading analytics (time per page measured on the server, live "reading now", activity
-> feed). Notifications and deployment follow. See `docs/ARCHITECTURE.md`.
+What it does:
+
+- **Documents**: upload PDF, Word (DOCX/ODT) or PowerPoint (PPTX/ODP) by dropping them anywhere;
+  Office files are converted to PDF with LibreOffice; pages are rendered and their text indexed.
+  New versions keep every link working.
+- **Links**: one link per person or group, with optional expiry, password, email gate (allow and
+  block lists), verified email (6-digit code), download and watermark.
+- **Analytics**: who opened what, which pages and for how long (measured on the server), live
+  "reading now" with the reader's current page, per-link and per-viewer breakdowns, and an
+  activity feed. Optional Rocket.Chat notifications.
+- **Team**: owners, admins, members and observers; invitations; audit log; English and Spanish.
+
+See `docs/ARCHITECTURE.md` for the design (data model, tracking, security).
 
 ## Run it locally
 
@@ -52,18 +62,42 @@ Useful dev pages (all under `/dev`, which production keeps tailnet-only):
 
 ## Deploy
 
-The release Dockerfile, `compose.example.yml`, `/healthz` and the deployment guide arrive in
-milestone 5. Configuration comes only from environment variables:
+Readout ships as one Docker image (the Elixir release plus LibreOffice, poppler, cwebp and fonts)
+and runs as a Compose stack (app + Postgres) behind Caddy.
+
+1. Copy `compose.example.yml`, `.env.example` (as `.env`) and `deploy/Caddyfile.example` into the
+   infra repo and fill in the secrets (`mix phx.gen.secret` for `SECRET_KEY_BASE`).
+2. Optional, for viewer locations: download DB-IP Lite City (free, CC BY 4.0) into `./geoip/` and
+   refresh it monthly:
+
+   ```sh
+   mkdir -p geoip && curl -L https://download.db-ip.com/free/dbip-city-lite-$(date +%Y-%m).mmdb.gz | gunzip > geoip/city.mmdb
+   ```
+
+3. `docker compose -f compose.example.yml up -d --build`. Migrations run on every boot.
+4. Open `https://$PHX_HOST/`: the first visit shows the setup screen for the owner account.
+
+Operations:
+
+- Health: `GET /healthz` (database and storage), also used by the image's `HEALTHCHECK`.
+- Data: the `storage` volume (files) and the `db` volume (Postgres). Back up both.
+- Internal tools under `/dev/*` (LiveDashboard, owners and admins only) are tailnet-only in Caddy.
+- Logs go to stdout. `docker compose exec app bin/readout remote` opens a console.
+- Document conversion runs without network access where the kernel allows unprivileged user
+  namespaces; Docker's default seccomp profile usually doesn't, and Readout then logs a warning and
+  relies on LibreOffice's own lockdown (no macros, a fresh profile, a timeout).
+
+Configuration (environment variables only):
 
 | Variable | Required | Meaning |
 |---|---|---|
 | `DATABASE_URL` | yes | `ecto://user:pass@host/db` |
 | `SECRET_KEY_BASE` | yes | `mix phx.gen.secret` |
 | `PHX_HOST` | yes | public host, e.g. `share.example.com` |
-| `STORAGE_PATH` | yes | where files live (a volume) |
-| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD` | no | email; without it invitations are copy-only and links can't verify emails |
+| `STORAGE_PATH` | yes (image default `/data/storage`) | where files live |
+| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD` | no | email (Office 365: `smtp.office365.com`, STARTTLS); without it invitations are copy-only and links can't verify emails |
 | `MAIL_FROM`, `MAIL_FROM_NAME` (`Readout`) | no | sender |
-| `TRUSTED_PROXIES` | no | CIDRs allowed to set `X-Forwarded-For` (default: loopback + private ranges) |
-| `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s) | no | limits |
+| `ROCKETCHAT_WEBHOOK_URL` | no | incoming webhook for reading notifications |
 | `GEOIP_DB_PATH` | no | MaxMind DB file (e.g. DB-IP Lite City) for viewer locations |
-| `ROCKETCHAT_WEBHOOK_URL` | no | notifications (milestone 5) |
+| `TRUSTED_PROXIES` | no | CIDRs allowed to set `X-Forwarded-For` / `-Proto` (default: loopback + private ranges) |
+| `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s), `POOL_SIZE` (10) | no | limits |

@@ -9,7 +9,12 @@ defmodule ReadoutWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {ReadoutWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers, %{"referrer-policy" => "strict-origin-when-cross-origin"}
+
+    plug :put_secure_browser_headers, %{
+      "referrer-policy" => "strict-origin-when-cross-origin",
+      "permissions-policy" => "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    }
+
     plug ReadoutWeb.Plugs.ContentSecurityPolicy
     plug :fetch_current_scope_for_user
     plug ReadoutWeb.Locale
@@ -26,7 +31,8 @@ defmodule ReadoutWeb.Router do
 
     plug :put_secure_browser_headers, %{
       "referrer-policy" => "no-referrer",
-      "x-robots-tag" => "noindex, nofollow"
+      "x-robots-tag" => "noindex, nofollow",
+      "permissions-policy" => "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
     }
 
     plug ReadoutWeb.Plugs.ContentSecurityPolicy
@@ -118,15 +124,23 @@ defmodule ReadoutWeb.Router do
     get "/:slug/download/:token/:kind", ViewerFileController, :download
   end
 
-  ## Internal tools under /dev (tailnet-only in production, via Caddy)
+  ## Internal tools under /dev: tailnet-only in production (one Caddy rule
+  ## covers the prefix). LiveDashboard also requires an owner or admin.
+
+  import Phoenix.LiveDashboard.Router
+
+  scope "/dev" do
+    pipe_through [:browser, :require_authenticated_user, :require_workspace_admin]
+
+    live_dashboard "/dashboard",
+      metrics: ReadoutWeb.Telemetry,
+      on_mount: [{ReadoutWeb.UserAuth, {:can, :manage_members}}]
+  end
 
   if Application.compile_env(:readout, :dev_routes) do
-    import Phoenix.LiveDashboard.Router
-
     scope "/dev" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: ReadoutWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
 

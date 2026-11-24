@@ -457,7 +457,9 @@ defmodule ReadoutWeb.DocumentLive.Analytics do
     |> assign(:viewer, viewer)
     |> stream(
       :viewer_visits,
-      Analytics.recent_visits(scope, doc, Keyword.put(opts(socket), :viewer, key)), reset: true)
+      Analytics.recent_visits(scope, doc, Keyword.put(opts(socket), :viewer, key)),
+      reset: true
+    )
   end
 
   defp load_viewer(socket),

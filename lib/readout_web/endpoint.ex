@@ -8,8 +8,14 @@ defmodule ReadoutWeb.Endpoint do
     store: :cookie,
     key: "_readout_key",
     signing_salt: "1cgPpmKR",
-    same_site: "Lax"
+    same_site: "Lax",
+    # Secure (HTTPS-only) in production, where Caddy terminates TLS.
+    secure: Application.compile_env(:readout, :secure_cookies, false),
+    http_only: true
   ]
+
+  # Container health check, before everything else.
+  plug ReadoutWeb.Plugs.Health
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [:peer_data, :x_headers, :user_agent, session: @session_options]],

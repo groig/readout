@@ -15,7 +15,11 @@ defmodule ReadoutWeb.ErrorMessages do
       dgettext_noop("errors", "is not a valid time zone"),
       dgettext_noop("errors", "is already a member"),
       dgettext_noop("errors", "already has a pending invitation"),
-      dgettext_noop("errors", "must have the @ sign")
+      dgettext_noop("errors", "must have the @ sign"),
+      dgettext_noop("errors", "must be in the future"),
+      dgettext_noop("errors", "has invalid entries: %{entries}"),
+      dgettext_noop("errors", "needs email (SMTP) to be configured"),
+      dgettext_noop("errors", "can only contain letters, numbers, dots, dashes and underscores")
     ]
   end
 end

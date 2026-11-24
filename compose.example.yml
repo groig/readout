@@ -1,0 +1,74 @@
+# Readout: app + Postgres. Copy into the infra repo and adapt.
+#
+# Caddy (already in our infra) terminates TLS and proxies to app:4000. See
+# deploy/Caddyfile.example for the site block, including the tailnet-only
+# rule for /dev/*.
+#
+#   cp .env.example .env    # fill in secrets
+#   docker compose -f compose.example.yml up -d --build
+
+name: readout
+
+services:
+  app:
+    build: .
+    # image: registry.example/readout:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ecto://readout:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db/readout
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set SECRET_KEY_BASE (mix phx.gen.secret)}
+      PHX_HOST: ${PHX_HOST:-share.example.com}
+      STORAGE_PATH: /data/storage
+      # Email (optional; without it invitations are copyable links and links
+      # can't require email verification).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-infra@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Readout}
+      # Optional
+      ROCKETCHAT_WEBHOOK_URL: ${ROCKETCHAT_WEBHOOK_URL:-}
+      GEOIP_DB_PATH: /data/geoip/city.mmdb
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-100}
+      # Proxies allowed to set X-Forwarded-For / -Proto (Caddy's address range).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+    volumes:
+      - storage:/data/storage
+      # Optional GeoIP database (DB-IP Lite City, CC BY 4.0). See README.
+      - ./geoip:/data/geoip:ro
+    # Not published: only Caddy talks to the app. For a quick local try,
+    # uncomment:
+    # ports:
+    #   - "127.0.0.1:4000:4000"
+    networks: [readout, proxy]
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: readout
+      POSTGRES_USER: readout
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U readout -d readout"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [readout]
+
+volumes:
+  storage:
+  db:
+
+networks:
+  readout:
+  # The network Caddy is attached to.
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}
