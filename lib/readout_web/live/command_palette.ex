@@ -186,9 +186,9 @@ defmodule ReadoutWeb.CommandPalette do
     else
       scope
       |> Readout.Documents.list_documents(query: query)
-      |> Enum.take(6)
-      |> Enum.map(fn doc ->
-        %{
+      |> Enum.take(5)
+      |> Enum.flat_map(fn doc ->
+        open = %{
           id: "doc-#{doc.id}",
           group: gettext("Documents"),
           label: doc.title,
@@ -198,6 +198,18 @@ defmodule ReadoutWeb.CommandPalette do
               ngettext("%{count} page", "%{count} pages", doc.current_version.page_count),
           action: {:navigate, ~p"/documents/#{doc.id}"}
         }
+
+        share =
+          Policy.can?(scope, :edit_document, doc) &&
+            %{
+              id: "share-#{doc.id}",
+              group: gettext("Documents"),
+              label: gettext("Create link for “%{title}”", title: doc.title),
+              icon: "hero-link",
+              action: {:navigate, ~p"/documents/#{doc.id}/links?new=1"}
+            }
+
+        Enum.filter([open, share], & &1)
       end)
     end
   end

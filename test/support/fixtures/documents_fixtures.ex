@@ -60,4 +60,16 @@ defmodule Readout.DocumentsFixtures do
 
     version
   end
+
+  @doc "A ready document with a link. Returns {document, link}."
+  def shared_fixture(scope, link_attrs \\ %{}) do
+    doc = document_fixture(scope)
+    fake_ready!(doc, 3)
+    doc = Documents.get_document(scope, doc.id)
+
+    {:ok, link} =
+      Readout.Links.create_link(scope, doc, Enum.into(link_attrs, %{"name" => "Client X"}))
+
+    {doc, link}
+  end
 end

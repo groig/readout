@@ -281,7 +281,7 @@ defmodule Readout.Accounts do
   Invites someone. Returns `{:ok, {invitation, token}}`; the raw token is only
   returned here, to build the copyable link.
   """
-  def create_invitation(%Scope{} = scope, attrs) do
+  def create_invitation(%Scope{} = scope, attrs, url_fun \\ nil) do
     changeset = change_invitation(attrs)
     role = Ecto.Changeset.get_field(changeset, :role)
 
@@ -301,6 +301,7 @@ defmodule Readout.Accounts do
         {:ok, invitation} ->
           Audit.log(scope, "invitation.created", invitation, %{role: invitation.role})
           broadcast_members({:invitation_updated, invitation})
+          maybe_email_invitation(scope, invitation, token, url_fun)
           {:ok, {invitation, token}}
 
         error ->
@@ -328,7 +329,7 @@ defmodule Readout.Accounts do
   end
 
   @doc "Issues a fresh link (and 7 more days) for a pending invitation."
-  def resend_invitation(%Scope{} = scope, %Invitation{} = invitation) do
+  def resend_invitation(%Scope{} = scope, %Invitation{} = invitation, url_fun \\ nil) do
     with :ok <- Policy.authorize(scope, :invite, :workspace),
          :ok <- Policy.authorize(scope, :assign_role, invitation.role),
          :ok <- ensure_open(invitation) do
@@ -345,6 +346,7 @@ defmodule Readout.Accounts do
 
       Audit.log(scope, "invitation.resent", invitation)
       broadcast_members({:invitation_updated, invitation})
+      maybe_email_invitation(scope, invitation, token, url_fun)
       {:ok, {invitation, token}}
     end
   end
@@ -362,6 +364,20 @@ defmodule Readout.Accounts do
       {:ok, invitation}
     end
   end
+
+  # Without SMTP (or a URL builder) the invitation is only a copyable link.
+  defp maybe_email_invitation(%Scope{user: inviter}, invitation, token, url_fun)
+       when is_function(url_fun, 1) do
+    if Readout.Mailer.enabled?() do
+      UserNotifier.deliver_invitation(invitation, url_fun.(token), inviter, %{
+        role: ReadoutWeb.Layouts.role_label(invitation.role),
+        workspace: Readout.Workspace.get_settings().name,
+        expires_on: invitation.expires_at
+      })
+    end
+  end
+
+  defp maybe_email_invitation(_scope, _invitation, _token, _url_fun), do: :ok
 
   defp ensure_open(%Invitation{accepted_at: nil, revoked_at: nil}), do: :ok
   defp ensure_open(_), do: {:error, :not_pending}
@@ -572,16 +588,55 @@ defmodule Readout.Accounts do
     UserNotifier.deliver_update_email_instructions(user, update_email_url_fun.(encoded_token))
   end
 
-  @doc "Delivers the magic link login instructions to the given (active) user."
+  @doc """
+  Delivers the magic link login instructions to the given (active) user.
+  At most 5 per address every 15 minutes.
+  """
   def deliver_login_instructions(%User{} = user, magic_link_url_fun)
       when is_function(magic_link_url_fun, 1) do
-    if User.active?(user) do
+    if User.active?(user) and
+         Readout.RateLimit.hit({:login_email, user.id}, 5, :timer.minutes(15)) == :ok do
       {encoded_token, user_token} = UserToken.build_email_token(user, "login")
       Repo.insert!(user_token)
       UserNotifier.deliver_login_instructions(user, magic_link_url_fun.(encoded_token))
     else
       {:error, :deactivated}
     end
+  end
+
+  @doc """
+  Emails a password reset link (valid for an hour). Silently does nothing for
+  deactivated users or when rate-limited (5 per address every 15 minutes).
+  """
+  def deliver_reset_password_instructions(%User{} = user, url_fun) when is_function(url_fun, 1) do
+    if User.active?(user) and
+         Readout.RateLimit.hit({:reset_email, user.id}, 5, :timer.minutes(15)) == :ok do
+      {encoded_token, user_token} = UserToken.build_email_token(user, "reset_password")
+      Repo.insert!(user_token)
+      UserNotifier.deliver_reset_password_instructions(user, url_fun.(encoded_token))
+    else
+      {:error, :not_sent}
+    end
+  end
+
+  @doc "Gets the user for a valid password reset token, or nil."
+  def get_user_by_reset_password_token(token) do
+    with {:ok, query} <- UserToken.verify_reset_password_token_query(token),
+         {user, _token} <- Repo.one(query) do
+      user
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Sets a new password from a reset link. Every session and token of the user
+  is deleted (so the link can't be reused); the caller disconnects them.
+  """
+  def reset_user_password(%User{} = user, attrs) do
+    user
+    |> User.password_changeset(attrs)
+    |> update_user_and_delete_all_tokens()
   end
 
   @doc "Deletes the signed token with the given context."

@@ -15,6 +15,25 @@ defmodule ReadoutWeb.Router do
     plug ReadoutWeb.Locale
   end
 
+  # The public viewer: no team session needed, the browser's language, and
+  # never indexed.
+  pipeline :viewer do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {ReadoutWeb.Layouts, :root}
+    plug :protect_from_forgery
+
+    plug :put_secure_browser_headers, %{
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex, nofollow"
+    }
+
+    plug ReadoutWeb.Plugs.ContentSecurityPolicy
+    plug ReadoutWeb.Locale, from: :browser
+    plug ReadoutWeb.ViewerAccess
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -43,6 +62,7 @@ defmodule ReadoutWeb.Router do
       live "/documents", DocumentLive.Index, :index
       live "/documents/:id", DocumentLive.Show, :show
       live "/documents/:id/versions", DocumentLive.Show, :versions
+      live "/documents/:id/links", DocumentLive.Show, :links
       live "/analytics", AnalyticsLive, :index
 
       live "/settings/profile", SettingsLive.Profile, :edit
@@ -75,10 +95,26 @@ defmodule ReadoutWeb.Router do
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
       live "/invitations/:token", InvitationLive, :accept
+      live "/users/reset-password", UserLive.ResetPassword, :new
+      live "/users/reset-password/:token", UserLive.ResetPassword, :edit
     end
 
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  ## Public viewer: /v/:slug (the only thing a share link exposes)
+
+  scope "/v", ReadoutWeb do
+    pipe_through :viewer
+
+    live_session :viewer, on_mount: [{ReadoutWeb.Locale, :browser}] do
+      live "/:slug", ViewerLive, :show
+    end
+
+    post "/:slug/access", ViewerAccessController, :create
+    get "/:slug/p/:token/:number/:width", ViewerFileController, :page
+    get "/:slug/download/:token/:kind", ViewerFileController, :download
   end
 
   ## Internal tools under /dev (tailnet-only in production, via Caddy)

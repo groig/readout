@@ -85,53 +85,63 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
-  # ## SSL Support
-  #
-  # To get SSL working, you will need to add the `https` key
-  # to your endpoint configuration:
-  #
-  #     config :readout, ReadoutWeb.Endpoint,
-  #       https: [
-  #         ...,
-  #         port: 443,
-  #         cipher_suite: :strong,
-  #         keyfile: System.get_env("SOME_APP_SSL_KEY_PATH"),
-  #         certfile: System.get_env("SOME_APP_SSL_CERT_PATH")
-  #       ]
-  #
-  # The `cipher_suite` is set to `:strong` to support only the
-  # latest and more secure SSL ciphers. This means old browsers
-  # and clients may not be supported. You can set it to
-  # `:compatible` for wider support.
-  #
-  # `:keyfile` and `:certfile` expect an absolute path to the key
-  # and cert in disk or a relative path inside priv, for example
-  # "priv/ssl/server.key". For all supported SSL configuration
-  # options, see https://plug.hexdocs.pm/Plug.SSL.html#configure/1
-  #
-  # We also recommend setting `force_ssl` in your config/prod.exs,
-  # ensuring no data is ever sent via http, always redirecting to https:
-  #
-  #     config :readout, ReadoutWeb.Endpoint,
-  #       force_ssl: [hsts: true]
-  #
-  # Check `Plug.SSL` for all available options in `force_ssl`.
+  # TLS terminates at Caddy; the app speaks plain HTTP on the private network.
 
-  # ## Configuring the mailer
-  #
-  # In production you need to configure the mailer to use a different adapter.
-  # Here is an example configuration for Mailgun:
-  #
-  #     config :readout, Readout.Mailer,
-  #       adapter: Swoosh.Adapters.Mailgun,
-  #       api_key: System.get_env("MAILGUN_API_KEY"),
-  #       domain: System.get_env("MAILGUN_DOMAIN")
-  #
-  # Most non-SMTP adapters require an API client. Swoosh supports Req, Hackney,
-  # and Finch out-of-the-box. This configuration is typically done at
-  # compile-time in your config/prod.exs:
-  #
-  #     config :swoosh, :api_client, Swoosh.ApiClient.Req
-  #
-  # See https://swoosh.hexdocs.pm/Swoosh.html#module-installation for details.
+  ## Readout settings (all from the environment)
+
+  config :readout, Readout.Storage,
+    root:
+      System.get_env("STORAGE_PATH") ||
+        raise("environment variable STORAGE_PATH is missing (where uploaded files live)")
+
+  config :readout, Readout.Documents,
+    max_upload_bytes: String.to_integer(System.get_env("MAX_UPLOAD_MB") || "100") * 1024 * 1024,
+    tool_timeout: String.to_integer(System.get_env("TOOL_TIMEOUT") || "180")
+
+  # Reverse proxies allowed to set X-Forwarded-For (CIDRs, comma-separated).
+  # Defaults cover loopback and the private ranges Docker networks use.
+  config :readout,
+         :trusted_proxies,
+         (System.get_env("TRUSTED_PROXIES") ||
+            "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16")
+         |> String.split(",", trim: true)
+         |> Enum.map(&String.trim/1)
+
+  ## Email (optional). Without SMTP_HOST, invitations are copyable links and
+  ## links can't require email verification.
+
+  config :readout,
+         :mail_from,
+         {System.get_env("MAIL_FROM_NAME") || "Readout",
+          System.get_env("MAIL_FROM") || "readout@#{host}"}
+
+  if smtp_host = System.get_env("SMTP_HOST") do
+    config :readout, Readout.Mailer,
+      adapter: Swoosh.Adapters.SMTP,
+      relay: smtp_host,
+      port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
+      username: System.get_env("SMTP_USERNAME"),
+      password: System.get_env("SMTP_PASSWORD"),
+      auth: :always,
+      # Port 587 with STARTTLS (Office 365); the certificate is verified.
+      ssl: false,
+      tls: :always,
+      tls_options: [
+        verify: :verify_peer,
+        cacerts: :public_key.cacerts_get(),
+        server_name_indication: String.to_charlist(smtp_host),
+        depth: 4,
+        customize_hostname_check: [
+          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+        ]
+      ],
+      retries: 2,
+      no_mx_lookups: true
+
+    config :readout, :mail_enabled, true
+  else
+    config :readout, :mail_enabled, false
+  end
+
+  config :readout, :rocketchat_webhook_url, System.get_env("ROCKETCHAT_WEBHOOK_URL")
 end

@@ -154,6 +154,32 @@ defmodule Readout.Accounts.UserToken do
     end
   end
 
+  @reset_password_validity_in_minutes 60
+
+  @doc """
+  Checks a password reset token (valid for an hour, for the address it was
+  sent to) and returns its lookup query. The query returns `{user, token}`.
+  """
+  def verify_reset_password_token_query(token) do
+    case Base.url_decode64(token, padding: false) do
+      {:ok, decoded_token} ->
+        hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
+
+        query =
+          from token in by_token_and_context_query(hashed_token, "reset_password"),
+            join: user in assoc(token, :user),
+            where: token.inserted_at > ago(^@reset_password_validity_in_minutes, "minute"),
+            where: token.sent_to == user.email,
+            where: is_nil(user.deactivated_at),
+            select: {user, token}
+
+        {:ok, query}
+
+      :error ->
+        :error
+    end
+  end
+
   defp by_token_and_context_query(token, context) do
     from UserToken, where: [token: ^token, context: ^context]
   end

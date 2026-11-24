@@ -7,9 +7,9 @@ which pages they read and for how long, live.
 It is free software, runs as one Docker Compose stack behind Caddy, and keeps every file and every
 analytics event on our own server. Nothing is sent to third parties.
 
-> Status: milestones 1 (foundation) and 2 (documents: upload, Office→PDF conversion, processing
-> jobs, list/grid, internal viewer, versions, access) are done. Links, the public viewer,
-> analytics and deployment follow. See `docs/ARCHITECTURE.md`.
+> Status: milestones 1–3 are done: foundation; documents (upload, Office→PDF, processing, viewer,
+> versions, access); share links with password / email / verified-email gates, the public viewer
+> and email. Analytics, notifications and deployment follow. See `docs/ARCHITECTURE.md`.
 
 ## Run it locally
 
@@ -45,6 +45,16 @@ Useful dev pages (all under `/dev`, which production keeps tailnet-only):
 ## Deploy
 
 The release Dockerfile, `compose.example.yml`, `/healthz` and the deployment guide arrive in
-milestone 5. Configuration will come only from environment variables: `DATABASE_URL`,
-`SECRET_KEY_BASE`, `PHX_HOST`, `STORAGE_PATH`, the `SMTP_*`/`MAIL_FROM*` settings and, optionally,
-`ROCKETCHAT_WEBHOOK_URL`.
+milestone 5. Configuration comes only from environment variables:
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `DATABASE_URL` | yes | `ecto://user:pass@host/db` |
+| `SECRET_KEY_BASE` | yes | `mix phx.gen.secret` |
+| `PHX_HOST` | yes | public host, e.g. `share.example.com` |
+| `STORAGE_PATH` | yes | where files live (a volume) |
+| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD` | no | email; without it invitations are copy-only and links can't verify emails |
+| `MAIL_FROM`, `MAIL_FROM_NAME` (`Readout`) | no | sender |
+| `TRUSTED_PROXIES` | no | CIDRs allowed to set `X-Forwarded-For` (default: loopback + private ranges) |
+| `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s) | no | limits |
+| `ROCKETCHAT_WEBHOOK_URL` | no | notifications (milestone 5) |

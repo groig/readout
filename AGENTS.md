@@ -38,6 +38,13 @@ These rules were settled while building the app and take precedence over the gen
   Re-read through the scope and ignore ids you aren't showing.
 - **External tools** (LibreOffice, poppler, cwebp) run only through `Readout.Documents.Tools.run/3`
   (timeout + network isolation). Tests that need them are tagged `@moduletag :tools`.
+- **Email**: build messages in `ReadoutWeb.Emails` (translated, HTML + text, escape everything) and
+  send with `Readout.Mailer.deliver_later/1`, never `Mailer.deliver/1` from a request. Check
+  `Readout.Mailer.enabled?/0` before offering anything that needs email.
+- **Public viewer**: only `/v/*` is public. Anything a viewer fetches carries a visit-bound
+  `ReadoutWeb.ViewerAccess` token and re-checks the link on every request. Rate-limit anything a
+  stranger can trigger (`Readout.RateLimit`, keyed by `ReadoutWeb.ClientIP`).
+- **Tests that change application config** go in `test/readout/global_config_test.exs` (async: false).
 - **Uploads** open via `JS.dispatch("readout:pick-file")` (the shell's uploader) or
   `<.button for={@uploads.x.ref}>` for a page's own upload. Validate files by content
   (`Readout.Documents.FileType`), never by extension.

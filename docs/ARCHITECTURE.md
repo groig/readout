@@ -75,6 +75,51 @@ SIGKILL) and, when the kernel allows unprivileged user namespaces, `unshare --ne
 have **no network**. Permanent errors (bad file, password-protected PDF) fail immediately; others
 retry. Status changes are broadcast; the UI updates live.
 
+## Links and the public viewer (milestone 3)
+
+- **links**: `slug` (128 random bits, URL-safe), name, enabled, `expires_at`, bcrypt
+  `password_hash`, `require_email`, `require_verification` (implies the email gate; needs SMTP),
+  `allow_list` / `deny_list` (emails or domains; the deny list wins), `allow_download`,
+  `allow_original_download`, `watermark`. Links always show the document's current version.
+- **link_verifications**: 6-digit codes from a CSPRNG, stored as `HMAC(link_id, code)`; valid
+  10 minutes; 5 attempts; one use. Sends are limited (3 per email and link per 15 minutes, 10 per
+  client).
+- **visits**: link, document, version, email, `email_verified`, client IP, user agent,
+  `started_at` / `last_seen_at` / `ended_at`. A visit starts when a connected reader is through
+  the gate, and ends when the LiveView terminates. Page timing is added in milestone 4.
+
+**Gate flow** (`ViewerLive`, `/v/:slug`): unavailable (missing, disabled, expired, not ready) →
+gate (password and/or email, rate-limited per link and client IP) → code (if verification) →
+grant. The LiveView can't write cookies, so it hands a 2-minute signed grant token to
+`ViewerAccessController` (via `phx-trigger-action`), which stores the grant in the session
+(keyed by link and stamped with a time: changing the link's settings invalidates older grants)
+and, for verified emails, sets a signed `rv_<slug>` cookie for 30 days (path-scoped to the link).
+Returning devices skip the code.
+
+**Page images** come from `/v/:slug/p/:token/:n/:width`, where the token is a `Phoenix.Token`
+bound to the visit (2 hours). Every request re-checks the link, so disabling or expiring it cuts
+access immediately. Downloads use the same token, require `allow_download`, and are audited with
+the viewer's email.
+
+**Watermark**: a CSS overlay tiled over each page with the viewer's email and time. It is a
+deterrent only: page images are unmarked, and screenshots or devtools defeat it. Burned-in
+watermarks are out of MVP scope.
+
+## Email
+
+`ReadoutWeb.Emails` builds every email (translated, HTML and text, values escaped).
+`Mailer.deliver_later/1` queues a `DeliverJob` (queue `mailers`, 5 attempts) whose argument is the
+built email **encrypted with `SECRET_KEY_BASE`**, so tokens and codes are never readable in
+`oban_jobs`. Without `SMTP_HOST`, `Mailer.enabled?/0` is false: invitations are copy-only, the
+sign-in link and password-reset options are hidden, and links can't enable verification.
+Production SMTP: STARTTLS on 587 with certificate and hostname verification (Office 365).
+
+## Client IPs
+
+`ReadoutWeb.ClientIP` (plug and LiveView) trusts `X-Forwarded-For` only from `TRUSTED_PROXIES`
+(CIDRs; defaults to loopback and Docker's private ranges), reading it right to left. Rate limits
+(`Readout.RateLimit`, ETS fixed windows, single node) and visits use this address.
+
 ## Live updates
 
 The shell (`ReadoutWeb.Shell`) subscribes every signed-in page to the `documents` topic and

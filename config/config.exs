@@ -73,6 +73,7 @@ config :readout, Readout.Documents,
 config :readout, Readout.Mailer, adapter: Swoosh.Adapters.Local
 # Dev uses the local mailbox (/dev/mailbox). Prod turns this on when SMTP_HOST is set.
 config :readout, :mail_enabled, true
+config :readout, :mail_from, {"Readout", "readout@localhost"}
 
 # Configure esbuild (the version is required)
 config :esbuild,

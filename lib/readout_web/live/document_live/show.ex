@@ -7,8 +7,10 @@ defmodule ReadoutWeb.DocumentLive.Show do
 
   import ReadoutWeb.DocumentComponents
   import ReadoutWeb.ViewerComponents
+  import ReadoutWeb.DocumentLive.LinkComponents
 
-  alias Readout.{Accounts, Documents, Policy}
+  alias Readout.{Accounts, Documents, Links, Policy}
+  alias Readout.Links.Link
   alias Readout.Accounts.User
   alias Readout.Documents.{FileType, Pdf, Version}
   alias ReadoutWeb.DocumentLabels
@@ -23,6 +25,16 @@ defmodule ReadoutWeb.DocumentLive.Show do
         <form :if={@can_edit} id="version-upload-form" phx-change="validate_version">
           <.live_file_input upload={@uploads.version} class="sr-only" tabindex="-1" />
         </form>
+        <.button
+          :if={@can_edit}
+          id="share-button"
+          size="sm"
+          variant="primary"
+          icon="hero-link-mini"
+          phx-click="new_link"
+        >
+          {gettext("Share")}
+        </.button>
         <.button
           :if={@can_edit}
           id="new-version-button"
@@ -156,6 +168,14 @@ defmodule ReadoutWeb.DocumentLive.Show do
           {gettext("Document")}
         </:tab>
         <:tab
+          patch={~p"/documents/#{@document}/links"}
+          active={@live_action == :links}
+          count={@link_count}
+          id="tab-links"
+        >
+          {gettext("Links")}
+        </:tab>
+        <:tab
           patch={~p"/documents/#{@document}/versions"}
           active={@live_action == :versions}
           count={length(@document.versions)}
@@ -165,50 +185,72 @@ defmodule ReadoutWeb.DocumentLive.Show do
         </:tab>
       </.tabs>
 
-      <%= if @live_action == :versions do %>
-        <.versions document={@document} scope={@current_scope} can_edit={@can_edit} />
-      <% else %>
-        <%= cond do %>
-          <% @document.current_version -> %>
-            <.viewer
-              id="viewer"
-              pages={@streams.pages}
-              thumbs={@streams.thumbs}
-              page_count={@document.current_version.page_count}
-              src={&page_url(@document, @document.current_version, &1.number, Pdf.view_width())}
-              thumb_src={
-                &page_url(@document, @document.current_version, &1.number, Pdf.thumb_width())
-              }
-            />
-          <% @document.latest_version && @document.latest_version.status == :failed -> %>
-            <div class="rounded-xl border border-border bg-surface">
-              <.empty_state
-                id="document-failed"
-                icon="hero-exclamation-triangle"
-                title={gettext("This document couldn't be processed")}
-              >
-                {DocumentLabels.error_message(@document.latest_version.error)}
-                <:actions :if={@can_edit}>
-                  <.button
-                    id="retry-processing"
-                    phx-click="retry"
-                    phx-value-id={@document.latest_version.id}
-                  >
-                    {gettext("Try again")}
-                  </.button>
-                </:actions>
-              </.empty_state>
-            </div>
-          <% true -> %>
-            <div id="document-processing" class="mx-auto max-w-3xl space-y-4">
-              <p class="flex items-center justify-center gap-2 text-sm text-fg-muted">
-                <span class="size-2 animate-pulse-dot rounded-full bg-accent text-accent" />
-                {gettext("Preparing pages… this usually takes a few seconds.")}
-              </p>
-              <.skeleton :for={_ <- 1..2} class="aspect-[1/1.414] w-full rounded-md" />
-            </div>
-        <% end %>
+      <%= cond do %>
+        <% @live_action == :versions -> %>
+          <.versions document={@document} scope={@current_scope} can_edit={@can_edit} />
+        <% @live_action == :links -> %>
+          <div :if={@can_edit and @link_count > 0} class="mb-4 flex justify-end">
+            <.button id="new-link-button" icon="hero-plus-mini" phx-click="new_link">
+              {gettext("New link")}
+            </.button>
+          </div>
+          <.links_table
+            links={@streams.links}
+            count={@link_count}
+            can_edit={@can_edit}
+            scope={@current_scope}
+          />
+        <% true -> %>
+          <%= cond do %>
+            <% @document.current_version -> %>
+              <.viewer
+                id="viewer"
+                pages={@streams.pages}
+                thumbs={@streams.thumbs}
+                page_count={@document.current_version.page_count}
+                src={&page_url(@document, @document.current_version, &1.number, Pdf.view_width())}
+                thumb_src={
+                  &page_url(@document, @document.current_version, &1.number, Pdf.thumb_width())
+                }
+              />
+            <% @document.latest_version && @document.latest_version.status == :failed -> %>
+              <div class="rounded-xl border border-border bg-surface">
+                <.empty_state
+                  id="document-failed"
+                  icon="hero-exclamation-triangle"
+                  title={gettext("This document couldn't be processed")}
+                >
+                  {DocumentLabels.error_message(@document.latest_version.error)}
+                  <:actions :if={@can_edit}>
+                    <.button
+                      id="retry-processing"
+                      phx-click="retry"
+                      phx-value-id={@document.latest_version.id}
+                    >
+                      {gettext("Try again")}
+                    </.button>
+                  </:actions>
+                </.empty_state>
+              </div>
+            <% true -> %>
+              <div id="document-processing" class="mx-auto max-w-3xl space-y-4">
+                <p class="flex items-center justify-center gap-2 text-sm text-fg-muted">
+                  <span class="size-2 animate-pulse-dot rounded-full bg-accent text-accent" />
+                  {gettext("Preparing pages… this usually takes a few seconds.")}
+                </p>
+                <.skeleton :for={_ <- 1..2} class="aspect-[1/1.414] w-full rounded-md" />
+              </div>
+          <% end %>
       <% end %>
+
+      <.link_sheet
+        :if={@editing_link}
+        form={@link_form}
+        link={@editing_link}
+        expires_on={@expires_on}
+        mail_enabled={@mail_enabled}
+        office?={office?(@document)}
+      />
 
       <.access_sheet
         document={@document}
@@ -434,6 +476,9 @@ defmodule ReadoutWeb.DocumentLive.Show do
         {:ok,
          socket
          |> assign(renaming: false, loaded_version_id: nil)
+         |> assign(editing_link: nil, link_form: nil, expires_on: "", link_count: 0)
+         |> assign(:mail_enabled, Readout.Mailer.enabled?())
+         |> stream(:links, [])
          |> assign(:member_form, to_form(%{"user_id" => "", "role" => "viewer"}, as: "member"))
          |> stream_configure(:pages, dom_id: &"page-#{&1.number}")
          |> stream_configure(:thumbs, dom_id: &"thumb-#{&1.number}")
@@ -449,7 +494,26 @@ defmodule ReadoutWeb.DocumentLive.Show do
   end
 
   @impl true
-  def handle_params(_params, _uri, socket), do: {:noreply, socket}
+  def handle_params(params, _uri, socket) do
+    socket = load_links(socket)
+
+    socket =
+      if params["new"] && socket.assigns.can_edit, do: open_link(socket, %Link{}), else: socket
+
+    {:noreply, socket}
+  end
+
+  defp load_links(%{assigns: %{document: document}} = socket) do
+    links = Links.list_links(socket.assigns.current_scope, document)
+
+    socket
+    |> assign(:link_count, length(links))
+    |> stream(:links, links, reset: true)
+  end
+
+  defp office?(%{current_version: %Version{} = v}), do: Version.office?(v)
+  defp office?(%{latest_version: %Version{} = v}), do: Version.office?(v)
+  defp office?(_), do: false
 
   defp assign_document(socket, document) do
     scope = socket.assigns.current_scope
@@ -504,41 +568,119 @@ defmodule ReadoutWeb.DocumentLive.Show do
 
   @doc false
   def handle_document_event(_event, id, socket) do
-    if id == socket.assigns.document.id, do: reload(socket), else: socket
+    if id == socket.assigns.document.id, do: socket |> reload() |> load_links(), else: socket
   end
 
-  ## Uploading a new version
+  ## Links
 
-  defp handle_progress(:version, entry, socket) do
-    if entry.done? do
-      scope = socket.assigns.current_scope
-      document = socket.assigns.document
+  defp open_link(socket, %Link{} = link) do
+    expires_on =
+      case link.expires_at do
+        nil ->
+          ""
 
-      result =
-        consume_uploaded_entry(socket, entry, fn %{path: path} ->
-          {:ok,
-           Documents.add_version(scope, document, %{path: path, filename: entry.client_name})}
-        end)
-
-      case result do
-        {:ok, version} ->
-          {:noreply,
-           socket
-           |> put_flash(
-             :info,
-             gettext("Version %{number} uploaded. Processing…", number: version.number)
-           )
-           |> reload()}
-
-        {:error, reason} ->
-          {:noreply, put_flash(socket, :error, DocumentLabels.upload_error(reason))}
+        at ->
+          at
+          |> Readout.TimeZones.shift(socket.assigns.current_scope.timezone)
+          |> DateTime.to_date()
+          |> Date.to_iso8601()
       end
-    else
-      {:noreply, socket}
+
+    socket
+    |> assign(editing_link: link, expires_on: expires_on)
+    |> assign(:link_form, to_form(Links.change_link(link)))
+  end
+
+  # The form sends a date; links expire at the end of that day, in the
+  # person's time zone, stored as UTC.
+  defp link_params(params, timezone) do
+    case Map.get(params, "expires_on") do
+      nil ->
+        params
+
+      "" ->
+        Map.put(params, "expires_at", nil)
+
+      date ->
+        with {:ok, date} <- Date.from_iso8601(date),
+             {:ok, local} <- DateTime.new(date, ~T[23:59:59], timezone) do
+          Map.put(params, "expires_at", DateTime.shift_zone!(local, "Etc/UTC"))
+        else
+          _ -> params
+        end
     end
   end
 
   @impl true
+  def handle_event("new_link", _params, socket) do
+    {:noreply, if(socket.assigns.can_edit, do: open_link(socket, %Link{}), else: socket)}
+  end
+
+  def handle_event("edit_link", %{"id" => id}, socket) do
+    case Links.get_link(socket.assigns.document, id) do
+      nil -> {:noreply, socket}
+      link -> {:noreply, open_link(socket, link)}
+    end
+  end
+
+  def handle_event("close_link", _params, socket) do
+    {:noreply, assign(socket, editing_link: nil, link_form: nil)}
+  end
+
+  def handle_event("validate_link", %{"link" => params}, socket) do
+    params = link_params(params, socket.assigns.current_scope.timezone)
+
+    form =
+      socket.assigns.editing_link
+      |> Links.change_link(params)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply,
+     assign(socket,
+       link_form: form,
+       expires_on: params["expires_on"] || socket.assigns.expires_on
+     )}
+  end
+
+  def handle_event("save_link", %{"link" => params}, socket) do
+    %{current_scope: scope, document: document, editing_link: link} = socket.assigns
+    params = link_params(params, scope.timezone)
+
+    result =
+      if link.id,
+        do: Links.update_link(scope, document, link, params),
+        else: Links.create_link(scope, document, params)
+
+    case result do
+      {:ok, saved} ->
+        message =
+          if link.id,
+            do: gettext("Link saved."),
+            else: gettext("Link “%{name}” created. Copy it from the list.", name: saved.name)
+
+        {:noreply,
+         socket
+         |> assign(editing_link: nil, link_form: nil)
+         |> put_flash(:info, message)
+         |> load_links()
+         |> then(
+           &if(&1.assigns.live_action == :links,
+             do: &1,
+             else: push_patch(&1, to: ~p"/documents/#{document}/links")
+           )
+         )}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, :link_form, to_form(changeset))}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, gettext("You can't do that."))}
+    end
+  end
+
+  ## Uploading a new version
+
   def handle_event("validate_version", _params, socket), do: {:noreply, socket}
 
   def handle_event("cancel_version", %{"ref" => ref}, socket) do
@@ -635,6 +777,37 @@ defmodule ReadoutWeb.DocumentLive.Show do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, gettext("You can't do that."))}
+    end
+  end
+
+  ## Upload progress
+
+  defp handle_progress(:version, entry, socket) do
+    if entry.done? do
+      scope = socket.assigns.current_scope
+      document = socket.assigns.document
+
+      result =
+        consume_uploaded_entry(socket, entry, fn %{path: path} ->
+          {:ok,
+           Documents.add_version(scope, document, %{path: path, filename: entry.client_name})}
+        end)
+
+      case result do
+        {:ok, version} ->
+          {:noreply,
+           socket
+           |> put_flash(
+             :info,
+             gettext("Version %{number} uploaded. Processing…", number: version.number)
+           )
+           |> reload()}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, DocumentLabels.upload_error(reason))}
+      end
+    else
+      {:noreply, socket}
     end
   end
 end

@@ -33,6 +33,9 @@ defmodule Readout.Documents do
     Phoenix.PubSub.broadcast(Readout.PubSub, "#{@topic}:#{document_id}", message)
   end
 
+  @doc "Tells subscribers a document changed (e.g. its links)."
+  def notify(document_id), do: broadcast(document_id, :document_updated)
+
   ## Configuration
 
   def max_upload_bytes do
@@ -119,7 +122,34 @@ defmodule Readout.Documents do
       |> Repo.all()
       |> Map.new(&{&1.document_id, &1})
 
-    Enum.map(documents, &%{&1 | latest_version: latest[&1.id]})
+    week_ago = DateTime.add(DateTime.utc_now(), -7, :day)
+
+    links =
+      from(l in Readout.Links.Link,
+        where: l.document_id in ^ids and l.enabled,
+        group_by: l.document_id,
+        select: {l.document_id, count(l.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    views =
+      from(v in Readout.Links.Visit,
+        where: v.document_id in ^ids and v.started_at > ^week_ago,
+        group_by: v.document_id,
+        select: {v.document_id, count(v.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    Enum.map(documents, fn d ->
+      %{
+        d
+        | latest_version: latest[d.id],
+          link_count: Map.get(links, d.id, 0),
+          views_7d: Map.get(views, d.id, 0)
+      }
+    end)
   end
 
   @doc """

@@ -21,6 +21,7 @@ defmodule Readout.Audit do
     invitation.created invitation.resent invitation.revoked invitation.accepted
     user.role_changed user.deactivated user.reactivated
     document.deleted document.downloaded
+    link.created link.updated link.enabled link.disabled
   )
 
   def actions, do: @actions

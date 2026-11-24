@@ -11,7 +11,8 @@ defmodule ReadoutWeb.AuditLabels do
       {gettext("Invitations"), "invitation."},
       {gettext("Members"), "user."},
       {gettext("Workspace"), "workspace."},
-      {gettext("Documents"), "document."}
+      {gettext("Documents"), "document."},
+      {gettext("Links"), "link."}
     ]
   end
 
@@ -68,7 +69,43 @@ defmodule ReadoutWeb.AuditLabels do
         gettext("%{actor} deleted «%{subject}»", actor: actor, subject: subject)
 
       "document.downloaded" ->
-        gettext("%{actor} downloaded «%{subject}»", actor: actor, subject: subject)
+        if meta["via"] == "link" do
+          gettext("%{viewer} downloaded «%{subject}» via the «%{link}» link",
+            viewer: meta["email"] || gettext("An anonymous viewer"),
+            subject: subject,
+            link: meta["link"]
+          )
+        else
+          gettext("%{actor} downloaded «%{subject}»", actor: actor, subject: subject)
+        end
+
+      "link.created" ->
+        gettext("%{actor} created the «%{subject}» link for «%{document}»",
+          actor: actor,
+          subject: subject,
+          document: meta["document"]
+        )
+
+      "link.updated" ->
+        gettext("%{actor} changed the «%{subject}» link for «%{document}»",
+          actor: actor,
+          subject: subject,
+          document: meta["document"]
+        )
+
+      "link.disabled" ->
+        gettext("%{actor} disabled the «%{subject}» link for «%{document}»",
+          actor: actor,
+          subject: subject,
+          document: meta["document"]
+        )
+
+      "link.enabled" ->
+        gettext("%{actor} enabled the «%{subject}» link for «%{document}»",
+          actor: actor,
+          subject: subject,
+          document: meta["document"]
+        )
 
       other ->
         "#{actor} · #{other}"

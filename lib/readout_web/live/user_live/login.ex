@@ -87,7 +87,18 @@ defmodule ReadoutWeb.UserLive.Login do
         </.form>
       <% end %>
 
-      <div :if={@mail_enabled} class="mt-5 border-t border-border pt-4 text-center">
+      <div
+        :if={@mail_enabled}
+        class="mt-5 flex flex-col items-center gap-2 border-t border-border pt-4 text-center"
+      >
+        <.link
+          :if={@mode == :password and !@current_scope}
+          id="forgot-password"
+          navigate={~p"/users/reset-password"}
+          class="text-sm text-fg-muted transition-colors hover:text-fg"
+        >
+          {gettext("Forgot your password?")}
+        </.link>
         <button
           :if={@mode == :password}
           id="use-magic-link"
@@ -96,7 +107,7 @@ defmodule ReadoutWeb.UserLive.Login do
           phx-value-mode="magic"
           class="cursor-pointer text-sm text-fg-muted transition-colors hover:text-fg"
         >
-          {gettext("Forgot your password? Get a sign-in link by email")}
+          {gettext("Email me a sign-in link instead")}
         </button>
         <button
           :if={@mode == :magic}

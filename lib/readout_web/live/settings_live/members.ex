@@ -295,6 +295,7 @@ defmodule ReadoutWeb.SettingsLive.Members do
         </div>
         <p class="mt-3 text-xs text-fg-subtle">
           {gettext("Expires on %{date}.", date: Format.date(@invite_link.expires_at, @current_scope))}
+          <span :if={@mail_enabled}>{gettext("We've also emailed it.")}</span>
         </p>
         <:footer>
           <.button phx-click={close_dialog("invite-link-dialog")}>{gettext("Done")}</.button>
@@ -340,6 +341,7 @@ defmodule ReadoutWeb.SettingsLive.Members do
      |> assign(:can_invite, Policy.can?(scope, :invite, :workspace))
      |> assign(:invite_roles, Enum.filter(User.roles(), &Policy.can?(scope, :assign_role, &1)))
      |> assign(invite_form: nil, invite_link: nil, confirm_deactivate: nil)
+     |> assign(:mail_enabled, Readout.Mailer.enabled?())
      |> load_invitations()}
   end
 
@@ -395,7 +397,11 @@ defmodule ReadoutWeb.SettingsLive.Members do
   end
 
   def handle_event("invite", %{"invitation" => params}, socket) do
-    case Accounts.create_invitation(socket.assigns.current_scope, params) do
+    case Accounts.create_invitation(
+           socket.assigns.current_scope,
+           params,
+           &url(~p"/invitations/#{&1}")
+         ) do
       {:ok, {invitation, token}} ->
         {:noreply,
          socket
@@ -414,7 +420,11 @@ defmodule ReadoutWeb.SettingsLive.Members do
   def handle_event("resend", %{"id" => id}, socket) do
     invitation = Accounts.get_pending_invitation!(id)
 
-    case Accounts.resend_invitation(socket.assigns.current_scope, invitation) do
+    case Accounts.resend_invitation(
+           socket.assigns.current_scope,
+           invitation,
+           &url(~p"/invitations/#{&1}")
+         ) do
       {:ok, {invitation, token}} ->
         {:noreply,
          socket
