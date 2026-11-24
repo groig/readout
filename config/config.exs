@@ -57,6 +57,10 @@ config :readout, Readout.Storage,
   adapter: Readout.Storage.Local,
   root: Path.expand("../tmp/storage", __DIR__)
 
+# Optional IP → location database (MaxMind DB format, e.g. DB-IP Lite City).
+# Production: GEOIP_DB_PATH. Development: download it into tmp/geoip/city.mmdb.
+config :readout, :geoip_db_path, Path.expand("../tmp/geoip/city.mmdb", __DIR__)
+
 config :readout, Readout.Documents,
   # Uploads larger than this are rejected (MAX_UPLOAD_MB in production).
   max_upload_bytes: 100 * 1024 * 1024,

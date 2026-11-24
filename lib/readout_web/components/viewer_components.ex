@@ -181,6 +181,18 @@ defmodule ReadoutWeb.ViewerComponents do
           if (this.track) {
             this.onVisibility = () => this.pushEvent("visibility", {visible: document.visibilityState === "visible"})
             document.addEventListener("visibilitychange", this.onVisibility)
+            // "Still here" pings (at most every 15 s) so the server can tell
+            // reading from a tab left open.
+            this.lastPing = 0
+            this.onActivity = () => {
+              const t = Date.now()
+              if (t - this.lastPing > 15000 && document.visibilityState === "visible") {
+                this.lastPing = t
+                this.pushEvent("activity", {})
+              }
+            }
+            for (const ev of ["scroll", "pointermove", "pointerdown", "keydown", "touchstart", "wheel"])
+              window.addEventListener(ev, this.onActivity, {passive: true})
           }
         },
         updated() { this.observe() },
@@ -218,6 +230,9 @@ defmodule ReadoutWeb.ViewerComponents do
           window.removeEventListener("keydown", this.onKey)
           clearTimeout(this.targetTimer)
           if (this.onVisibility) document.removeEventListener("visibilitychange", this.onVisibility)
+          if (this.onActivity)
+            for (const ev of ["scroll", "pointermove", "pointerdown", "keydown", "touchstart", "wheel"])
+              window.removeEventListener(ev, this.onActivity)
         }
       }
     </script>

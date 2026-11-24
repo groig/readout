@@ -218,6 +218,8 @@ defmodule Readout.Links do
   @doc "Starts a visit once the viewer is through the gate."
   def start_visit(%Link{} = link, attrs) do
     now = DateTime.utc_now()
+    location = Readout.GeoIP.lookup(attrs[:ip]) || %{country_code: nil, country: %{}, city: %{}}
+    version = link.document.current_version
 
     %Visit{
       link_id: link.id,
@@ -228,9 +230,14 @@ defmodule Readout.Links do
       ip: attrs[:ip],
       user_agent: attrs[:user_agent] && String.slice(attrs[:user_agent], 0, 400),
       started_at: now,
-      last_seen_at: now
+      last_seen_at: now,
+      country_code: location.country_code,
+      country: location.country,
+      city: location.city,
+      page_count: version && version.page_count
     }
     |> Repo.insert!()
+    |> tap(&Readout.Analytics.broadcast(:visit_started, &1))
   end
 
   def get_visit(id) do
@@ -240,9 +247,11 @@ defmodule Readout.Links do
   def end_visit(%Visit{} = visit) do
     now = DateTime.utc_now()
 
-    from(v in Visit, where: v.id == ^visit.id and is_nil(v.ended_at))
-    |> Repo.update_all(set: [ended_at: now, last_seen_at: now])
+    {count, _} =
+      from(v in Visit, where: v.id == ^visit.id and is_nil(v.ended_at))
+      |> Repo.update_all(set: [ended_at: now, last_seen_at: now])
 
+    if count > 0, do: Readout.Analytics.broadcast(:visit_ended, visit)
     :ok
   end
 end

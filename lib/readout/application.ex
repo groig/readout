@@ -14,6 +14,7 @@ defmodule Readout.Application do
       {Phoenix.PubSub, name: Readout.PubSub},
       {Oban, Application.fetch_env!(:readout, Oban)},
       Readout.RateLimit,
+      ReadoutWeb.Presence,
       # Start a worker by calling: Readout.Worker.start_link(arg)
       # {Readout.Worker, arg},
       # Start to serve requests, typically the last entry

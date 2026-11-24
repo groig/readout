@@ -44,6 +44,8 @@ These rules were settled while building the app and take precedence over the gen
 - **Public viewer**: only `/v/*` is public. Anything a viewer fetches carries a visit-bound
   `ReadoutWeb.ViewerAccess` token and re-checks the link on every request. Rate-limit anything a
   stranger can trigger (`Readout.RateLimit`, keyed by `ReadoutWeb.ClientIP`).
+- **Analytics**: the client never reports durations. Anything time-based is measured on the server
+  (`Readout.Analytics.Tracker`). Live analytics messages carry ids only; re-read through the scope.
 - **Tests that change application config** go in `test/readout/global_config_test.exs` (async: false).
 - **Uploads** open via `JS.dispatch("readout:pick-file")` (the shell's uploader) or
   `<.button for={@uploads.x.ref}>` for a page's own upload. Validate files by content

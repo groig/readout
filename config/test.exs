@@ -52,3 +52,6 @@ config :readout, Oban, testing: :manual
 config :readout, Readout.Storage,
   root:
     Path.join(System.tmp_dir!(), "readout-test-storage-#{System.get_env("MIX_TEST_PARTITION")}")
+
+# Tests use generated databases (Readout.GeoIPFixture), never the dev one.
+config :readout, :geoip_db_path, nil

@@ -105,6 +105,36 @@ the viewer's email.
 deterrent only: page images are unmarked, and screenshots or devtools defeat it. Burned-in
 watermarks are out of MVP scope.
 
+## Tracking and analytics (milestone 4)
+
+**What the client may say**: which page is in view (`IntersectionObserver`, the most visible
+page), whether the tab is visible (`visibilitychange`), and "still here" pings on interaction
+(at most every 15 s). Events go over the viewer's LiveView socket; there is no extra endpoint.
+
+**What the server measures** (`Readout.Analytics.Tracker`, a pure state machine owned by the
+viewer's LiveView): time accrues to the current page by the server's monotonic clock only while
+the tab is visible, and only up to 2 minutes after the last sign of activity (idle readers stop
+counting). After 30 minutes without activity the visit ends; a returning reader starts a new one.
+Every 10 s (and when the LiveView terminates) the pending time is flushed with
+`Analytics.record/4`: an upsert per page into **page_views** (`visit_id, page, duration_ms,
+views`) and the visit's totals (`duration_ms`, `pages_viewed`, `last_page`, `last_seen_at`).
+
+**Location**: `Readout.GeoIP` reads a MaxMind DB file (DB-IP Lite City by default, CC BY 4.0,
+`GEOIP_DB_PATH`) in memory with a small built-in reader; country and city names are stored per
+locale on the visit. Without the file, analytics show the IP.
+
+**Live**: `ReadoutWeb.Presence` tracks each reading LiveView (key: visit id; meta: link, email,
+location, current page) on `reading:<doc>` and `reading`. Visit start/update/end are broadcast on
+`analytics` and `analytics:<doc>` (ids only). Document dashboards and the workspace feed re-read
+through the scope and refresh stats at most every 2 s.
+
+**Queries** (`Readout.Analytics`): overview (visits, unique viewers = distinct email-or-IP,
+average time, completion = visits that reached the last page, deltas vs the previous period,
+daily series in the person's time zone), time per page (average per visit and reach), per link,
+viewers (grouped by email, or anonymous by IP), recent visits, a visit's page-by-page timeline,
+and the workspace overview. All require `:view_document`; the workspace views only include
+documents the person can see.
+
 ## Email
 
 `ReadoutWeb.Emails` builds every email (translated, HTML and text, values escaped).

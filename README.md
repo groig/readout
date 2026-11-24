@@ -7,9 +7,9 @@ which pages they read and for how long, live.
 It is free software, runs as one Docker Compose stack behind Caddy, and keeps every file and every
 analytics event on our own server. Nothing is sent to third parties.
 
-> Status: milestones 1–3 are done: foundation; documents (upload, Office→PDF, processing, viewer,
-> versions, access); share links with password / email / verified-email gates, the public viewer
-> and email. Analytics, notifications and deployment follow. See `docs/ARCHITECTURE.md`.
+> Status: milestones 1–4 are done: foundation; documents; share links and the public viewer with
+> email; reading analytics (time per page measured on the server, live "reading now", activity
+> feed). Notifications and deployment follow. See `docs/ARCHITECTURE.md`.
 
 ## Run it locally
 
@@ -26,6 +26,14 @@ mix phx.server                 # http://localhost:4000
 On a fresh database, `/` sends you to the first-run setup screen, where you create the owner
 account. With seeds, sign in as `owner@readout.test` (also `admin@`, `member@`, `observer@`) with
 the password `readout-dev-password`.
+
+Optional: IP locations in analytics need a GeoIP database. For development, download DB-IP Lite
+City (free, CC BY 4.0) into `tmp/geoip/city.mmdb`:
+
+```sh
+mkdir -p tmp/geoip && curl -L https://download.db-ip.com/free/dbip-city-lite-$(date +%Y-%m).mmdb.gz | gunzip > tmp/geoip/city.mmdb
+mix run priv/repo/demo_analytics.exs   # optional: 30 days of demo visits
+```
 
 Useful dev pages (all under `/dev`, which production keeps tailnet-only):
 
@@ -57,4 +65,5 @@ milestone 5. Configuration comes only from environment variables:
 | `MAIL_FROM`, `MAIL_FROM_NAME` (`Readout`) | no | sender |
 | `TRUSTED_PROXIES` | no | CIDRs allowed to set `X-Forwarded-For` (default: loopback + private ranges) |
 | `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s) | no | limits |
+| `GEOIP_DB_PATH` | no | MaxMind DB file (e.g. DB-IP Lite City) for viewer locations |
 | `ROCKETCHAT_WEBHOOK_URL` | no | notifications (milestone 5) |

@@ -15,7 +15,11 @@ defmodule ReadoutWeb.ViewerLive do
   alias Readout.Documents.{Pdf, Version}
   alias Readout.Links
   alias Readout.Links.Link
-  alias ReadoutWeb.{ClientIP, ViewerAccess}
+  alias Readout.Analytics
+  alias Readout.Analytics.Tracker
+  alias ReadoutWeb.{ClientIP, Presence, ViewerAccess}
+
+  @tick_ms 10_000
 
   @impl true
   def render(assigns) do
@@ -241,7 +245,7 @@ defmodule ReadoutWeb.ViewerLive do
       socket
       |> assign(:workspace, Readout.Workspace.get_settings())
       |> assign(:page_title, gettext("Shared document"))
-      |> assign(gate_error: nil, grant_token: nil, visit: nil, visit_token: nil)
+      |> assign(gate_error: nil, grant_token: nil, visit: nil, visit_token: nil, tracker: nil)
       |> assign(:client_key, client_key(socket))
 
     case Links.fetch_public_link(slug) do
@@ -307,9 +311,12 @@ defmodule ReadoutWeb.ViewerLive do
         })
 
       pages = Documents.list_pages(socket.assigns.version)
+      Process.send_after(self(), :tick, @tick_ms)
 
       socket
       |> assign(visit: visit, visit_token: ViewerAccess.sign_visit(visit.id))
+      |> assign(:tracker, Tracker.new(socket.assigns.version.page_count, now()))
+      |> track_presence()
       |> stream(:pages, pages)
       |> stream(:thumbs, pages)
     else
@@ -393,12 +400,139 @@ defmodule ReadoutWeb.ViewerLive do
      |> assign(:gate_form, to_form(%{"email" => "", "password" => ""}, as: "gate"))}
   end
 
-  ## Reading (page tracking arrives with analytics)
+  ## Reading: the client says which page and whether it's visible; the
+  ## server measures the time (Readout.Analytics.Tracker).
 
-  def handle_event("page", %{"page" => _page}, socket), do: {:noreply, socket}
-  def handle_event("visibility", _params, socket), do: {:noreply, socket}
+  def handle_event("page", %{"page" => page}, socket) when is_integer(page) do
+    socket = ensure_visit(socket)
+
+    case socket.assigns.tracker do
+      nil ->
+        {:noreply, socket}
+
+      tracker ->
+        socket = assign(socket, :tracker, Tracker.page(tracker, page, now()))
+        {:noreply, update_presence(socket, %{page: socket.assigns.tracker.page})}
+    end
+  end
+
+  def handle_event("visibility", %{"visible" => visible}, socket) when is_boolean(visible) do
+    socket = if visible, do: ensure_visit(socket), else: socket
+
+    case socket.assigns.tracker do
+      nil -> {:noreply, socket}
+      tracker -> {:noreply, assign(socket, :tracker, Tracker.visibility(tracker, visible, now()))}
+    end
+  end
+
+  def handle_event("activity", _params, socket) do
+    socket = ensure_visit(socket)
+
+    case socket.assigns.tracker do
+      nil -> {:noreply, socket}
+      tracker -> {:noreply, assign(socket, :tracker, Tracker.activity(tracker, now()))}
+    end
+  end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_info(:tick, %{assigns: %{tracker: %Tracker{} = tracker}} = socket) do
+    Process.send_after(self(), :tick, @tick_ms)
+    socket = flush(socket)
+
+    if Tracker.ended?(tracker, now()) do
+      # Gone for a while: end this visit. Coming back starts a new one.
+      {:noreply, finish_visit(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(:tick, socket), do: {:noreply, socket}
+
+  defp flush(%{assigns: %{tracker: %Tracker{} = tracker, visit: visit}} = socket) do
+    {tracker, ms, views} = Tracker.flush(tracker, now())
+    visit = Analytics.record(visit, ms, views, tracker.page)
+    assign(socket, tracker: tracker, visit: visit)
+  end
+
+  defp flush(socket), do: socket
+
+  defp finish_visit(%{assigns: %{visit: %{} = visit}} = socket) do
+    socket = flush(socket)
+    Links.end_visit(visit)
+    untrack_presence(socket)
+    assign(socket, tracker: nil, visit: %{visit | ended_at: DateTime.utc_now()})
+  end
+
+  defp finish_visit(socket), do: socket
+
+  # A reader returning after their visit ended for inactivity gets a new one
+  # (the page images keep working: their token outlives the visit).
+  defp ensure_visit(
+         %{assigns: %{state: :reading, tracker: nil, visit: %{ended_at: %DateTime{}}}} = socket
+       ) do
+    %{link: link, email: email, verified: verified?} = socket.assigns
+
+    visit =
+      Links.start_visit(link, %{
+        email: email,
+        email_verified: verified?,
+        ip: ClientIP.from_socket(socket),
+        user_agent: get_connect_info(socket, :user_agent)
+      })
+
+    socket
+    |> assign(:visit, visit)
+    |> assign(:tracker, Tracker.new(socket.assigns.version.page_count, now()))
+    |> track_presence()
+  end
+
+  defp ensure_visit(socket), do: socket
+
+  defp track_presence(%{assigns: %{visit: visit, link: link}} = socket) do
+    meta = %{
+      visit_id: visit.id,
+      document_id: link.document_id,
+      link_id: link.id,
+      link_name: link.name,
+      email: visit.email,
+      verified: visit.email_verified,
+      country: visit.country,
+      city: visit.city,
+      page: nil,
+      page_count: socket.assigns.version.page_count,
+      started_at: visit.started_at
+    }
+
+    {:ok, _} = Presence.track(self(), Presence.document_topic(link.document_id), visit.id, meta)
+    {:ok, _} = Presence.track(self(), Presence.workspace_topic(), visit.id, meta)
+    assign(socket, :presence_meta, meta)
+  end
+
+  defp update_presence(
+         %{assigns: %{presence_meta: meta, visit: visit, link: link}} = socket,
+         changes
+       ) do
+    meta = Map.merge(meta, changes)
+
+    if meta != socket.assigns.presence_meta do
+      Presence.update(self(), Presence.document_topic(link.document_id), visit.id, meta)
+      Presence.update(self(), Presence.workspace_topic(), visit.id, meta)
+    end
+
+    assign(socket, :presence_meta, meta)
+  end
+
+  defp update_presence(socket, _changes), do: socket
+
+  defp untrack_presence(%{assigns: %{visit: visit, link: link}}) do
+    Presence.untrack(self(), Presence.document_topic(link.document_id), visit.id)
+    Presence.untrack(self(), Presence.workspace_topic(), visit.id)
+  end
+
+  defp now, do: System.monotonic_time(:millisecond)
 
   defp send_code(socket, email) do
     case Links.send_verification(
@@ -428,7 +562,11 @@ defmodule ReadoutWeb.ViewerLive do
   end
 
   @impl true
-  def terminate(_reason, %{assigns: %{visit: %{} = visit}}), do: Links.end_visit(visit)
+  def terminate(_reason, %{assigns: %{visit: %{} = visit, tracker: %Tracker{}}} = socket) do
+    flush(socket)
+    Links.end_visit(visit)
+  end
+
   def terminate(_reason, _socket), do: :ok
 
   ## Copy

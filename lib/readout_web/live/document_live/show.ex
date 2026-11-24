@@ -175,6 +175,9 @@ defmodule ReadoutWeb.DocumentLive.Show do
         >
           {gettext("Links")}
         </:tab>
+        <:tab navigate={~p"/documents/#{@document}/analytics"} id="tab-analytics">
+          {gettext("Analytics")}
+        </:tab>
         <:tab
           patch={~p"/documents/#{@document}/versions"}
           active={@live_action == :versions}

@@ -63,6 +63,7 @@ defmodule ReadoutWeb.Router do
       live "/documents/:id", DocumentLive.Show, :show
       live "/documents/:id/versions", DocumentLive.Show, :versions
       live "/documents/:id/links", DocumentLive.Show, :links
+      live "/documents/:id/analytics", DocumentLive.Analytics, :index
       live "/analytics", AnalyticsLive, :index
 
       live "/settings/profile", SettingsLive.Profile, :edit
