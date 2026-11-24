@@ -153,7 +153,9 @@ defmodule ReadoutWeb.ViewerLiveTest do
     conn = follow_trigger_action(form(lv, "#access-form"), conn)
     {:ok, lv, _} = live(recycle(conn), ~p"/v/#{link.slug}")
 
-    assert render(element(lv, "#page-1")) =~ "ana@client.com"
+    # Burned into the image (see WatermarkTest), not a CSS overlay.
+    assert has_element?(lv, "#page-1 img[src*='/v/#{link.slug}/p/']")
+    refute render(element(lv, "#page-1")) =~ "ana@client.com"
     assert has_element?(lv, "#download-pdf")
   end
 end

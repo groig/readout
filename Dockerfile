@@ -84,7 +84,7 @@ FROM ${RUNNER_IMAGE} AS final
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     libstdc++6 openssl libncurses6 locales ca-certificates tini curl \
-    poppler-utils webp \
+    poppler-utils webp imagemagick fontconfig \
     libreoffice-writer-nogui libreoffice-impress-nogui libreoffice-calc-nogui \
     fonts-crosextra-carlito fonts-crosextra-caladea \
     fonts-liberation fonts-liberation2 fonts-dejavu-core fonts-noto-core \

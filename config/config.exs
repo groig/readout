@@ -48,7 +48,8 @@ config :readout, Oban,
   queues: [documents: 2, mailers: 5, default: 5],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 7 * 24 * 60 * 60},
-    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)}
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
+    {Oban.Plugins.Cron, crontab: [{"17 3 * * *", Readout.Documents.WatermarkCleanup}]}
   ]
 
 # Files live on local disk under STORAGE_PATH (see runtime.exs), behind the

@@ -14,7 +14,8 @@ What it does:
   Spreadsheets (XLSX, ODS, CSV) are shown as tables with a chart view.
   New versions keep every link working.
 - **Links**: one link per person or group, with optional expiry, password, email gate (allow and
-  block lists), verified email (6-digit code), download and watermark.
+  block lists), verified email (6-digit code), download and a watermark burned into every page
+  and download (traceable to the visit).
 - **Rooms**: several documents behind one link (a deal, a board pack), in your order, with the
   same link settings; each document read counts in its own analytics and in the room's roll-up.
 - **Analytics**: who opened what, which pages and for how long (measured on the server), live

@@ -1106,7 +1106,7 @@ msgstr "Correo del trabajo"
 
 #: lib/readout_web/audit_labels.ex:13
 #: lib/readout_web/components/layouts.ex:441
-#: lib/readout_web/document_labels.ex:46
+#: lib/readout_web/document_labels.ex:55
 #: lib/readout_web/live/room_live/show.ex:282
 #: lib/readout_web/live/settings_live/workspace.ex:16
 #: lib/readout_web/live/settings_live/workspace.ex:114
@@ -1281,9 +1281,8 @@ msgid_plural "%{count} links"
 msgstr[0] "%{count} enlace"
 msgstr[1] "%{count} enlaces"
 
+#: lib/readout_web/document_labels.ex:36
 #: lib/readout_web/live/command_palette.ex:198
-#: lib/readout_web/live/document_live/index.ex:461
-#: lib/readout_web/live/document_live/show.ex:145
 #: lib/readout_web/live/room_live/show.ex:121
 #: lib/readout_web/live/viewer_live.ex:165
 #, elixir-autogen, elixir-format
@@ -1369,7 +1368,7 @@ msgstr "Descargar original (%{format})"
 msgid "Drop to upload"
 msgstr "Suelta para subir"
 
-#: lib/readout_web/document_labels.ex:49
+#: lib/readout_web/document_labels.ex:58
 #, elixir-autogen, elixir-format
 msgid "Editor"
 msgstr "Editor"
@@ -1384,7 +1383,7 @@ msgstr "Los editores gestionan enlaces y versiones. Los lectores ven el document
 msgid "Everyone in the workspace can see it."
 msgstr "Todo el espacio de trabajo puede verlo."
 
-#: lib/readout_web/document_labels.ex:44
+#: lib/readout_web/document_labels.ex:53
 #, elixir-autogen, elixir-format
 msgid "Failed"
 msgstr "Error"
@@ -1498,7 +1497,7 @@ msgstr "Preparando las páginas… suele tardar unos segundos."
 msgid "Previous page"
 msgstr "Página anterior"
 
-#: lib/readout_web/document_labels.ex:42
+#: lib/readout_web/document_labels.ex:51
 #, elixir-autogen, elixir-format
 msgid "Processing"
 msgstr "Procesando"
@@ -1508,12 +1507,12 @@ msgstr "Procesando"
 msgid "Processing took too long and was stopped."
 msgstr "El procesamiento tardó demasiado y se detuvo."
 
-#: lib/readout_web/document_labels.ex:41
+#: lib/readout_web/document_labels.ex:50
 #, elixir-autogen, elixir-format
 msgid "Queued"
 msgstr "En cola"
 
-#: lib/readout_web/document_labels.ex:43
+#: lib/readout_web/document_labels.ex:52
 #, elixir-autogen, elixir-format
 msgid "Ready"
 msgstr "Listo"
@@ -1534,7 +1533,7 @@ msgstr "Quitar a %{name}"
 msgid "Rename"
 msgstr "Renombrar"
 
-#: lib/readout_web/document_labels.ex:47
+#: lib/readout_web/document_labels.ex:56
 #: lib/readout_web/live/room_live/show.ex:52
 #, elixir-autogen, elixir-format
 msgid "Restricted"
@@ -1693,7 +1692,7 @@ msgstr "Versión %{number} subida. Procesando…"
 msgid "Versions"
 msgstr "Versiones"
 
-#: lib/readout_web/document_labels.ex:50
+#: lib/readout_web/document_labels.ex:59
 #: lib/readout_web/live/document_live/analytics.ex:171
 #: lib/readout_web/live/document_live/analytics.ex:253
 #: lib/readout_web/live/document_live/analytics.ex:318
@@ -1774,7 +1773,7 @@ msgstr "%{name} te ha invitado a unirte a %{workspace} en Readout como %{role}."
 msgid "%{viewer} downloaded «%{subject}» via the «%{link}» link"
 msgstr "%{viewer} descargó «%{subject}» desde el enlace «%{link}»"
 
-#: lib/readout_web/live/viewer_live.ex:291
+#: lib/readout_web/live/viewer_live.ex:290
 #, elixir-autogen, elixir-format
 msgid "%{workspace} shared a document with you"
 msgstr "%{workspace} ha compartido un documento contigo"
@@ -1825,7 +1824,7 @@ msgstr "Un lector anónimo"
 msgid "Ask for an email"
 msgstr "Pedir un correo"
 
-#: lib/readout_web/live/viewer_live.ex:749
+#: lib/readout_web/live/viewer_live.ex:748
 #, elixir-autogen, elixir-format
 msgid "Ask the person who shared it for a new link."
 msgstr "Pide un nuevo enlace a quien te lo compartió."
@@ -1923,7 +1922,7 @@ msgstr "Mejor envíame un enlace de acceso"
 msgid "Email required"
 msgstr "Correo obligatorio"
 
-#: lib/readout_web/live/viewer_live.ex:485
+#: lib/readout_web/live/viewer_live.ex:484
 #, elixir-autogen, elixir-format
 msgid "Email verification isn't available right now. Please contact the sender."
 msgstr "La verificación por correo no está disponible ahora. Contacta con quien te lo envió."
@@ -1970,7 +1969,7 @@ msgstr "Si no lo has pedido tú, puedes ignorar este correo. Tu contraseña no c
 msgid "If your email is in our system, you'll get a reset link shortly."
 msgstr "Si tu correo está registrado, recibirás un enlace para restablecerla en breve."
 
-#: lib/readout_web/live/viewer_live.ex:747
+#: lib/readout_web/live/viewer_live.ex:746
 #, elixir-autogen, elixir-format
 msgid "It's being prepared. Please try again in a minute."
 msgstr "Se está preparando. Vuelve a intentarlo en un minuto."
@@ -2060,7 +2059,7 @@ msgstr "Contraseña cambiada. Inicia sesión con tu nueva contraseña."
 msgid "Password protected"
 msgstr "Protegido con contraseña"
 
-#: lib/readout_web/live/viewer_live.ex:728
+#: lib/readout_web/live/viewer_live.ex:727
 #, elixir-autogen, elixir-format
 msgid "Please enter a valid email address."
 msgstr "Introduce una dirección de correo válida."
@@ -2107,37 +2106,32 @@ msgstr "Guardar nueva contraseña"
 msgid "Share"
 msgstr "Compartir"
 
-#: lib/readout_web/live/viewer_live.ex:324
+#: lib/readout_web/live/viewer_live.ex:323
 #, elixir-autogen, elixir-format
 msgid "Shared document"
 msgstr "Documento compartido"
 
-#: lib/readout_web/live/viewer_live.ex:274
+#: lib/readout_web/live/viewer_live.ex:273
 #, elixir-autogen, elixir-format
 msgid "Shared securely with Readout"
 msgstr "Compartido de forma segura con Readout"
-
-#: lib/readout_web/live/document_live/link_components.ex:279
-#, elixir-autogen, elixir-format
-msgid "Shows the viewer's email and the time over every page. A deterrent, not real protection."
-msgstr "Muestra el correo del lector y la hora sobre cada página. Disuade, pero no es una protección real."
 
 #: lib/readout_web/emails.ex:56
 #, elixir-autogen, elixir-format
 msgid "Sign in to Readout"
 msgstr "Iniciar sesión en Readout"
 
-#: lib/readout_web/live/viewer_live.ex:735
+#: lib/readout_web/live/viewer_live.ex:734
 #, elixir-autogen, elixir-format
 msgid "That code has expired. Send a new one."
 msgstr "Ese código ha caducado. Envía uno nuevo."
 
-#: lib/readout_web/live/viewer_live.ex:734
+#: lib/readout_web/live/viewer_live.ex:733
 #, elixir-autogen, elixir-format
 msgid "That code isn't right."
 msgstr "Ese código no es correcto."
 
-#: lib/readout_web/live/viewer_live.ex:727
+#: lib/readout_web/live/viewer_live.ex:726
 #, elixir-autogen, elixir-format
 msgid "That password isn't right."
 msgstr "Esa contraseña no es correcta."
@@ -2163,32 +2157,32 @@ msgstr "El código caduca en %{minutes} minutos. Si no lo has pedido tú, ignora
 msgid "The link expires on %{date}."
 msgstr "El enlace caduca el %{date}."
 
-#: lib/readout_web/live/viewer_live.ex:743
+#: lib/readout_web/live/viewer_live.ex:742
 #, elixir-autogen, elixir-format
 msgid "This document is almost ready"
 msgstr "Este documento está casi listo"
 
-#: lib/readout_web/live/viewer_live.ex:729
+#: lib/readout_web/live/viewer_live.ex:728
 #, elixir-autogen, elixir-format
 msgid "This email can't open this document."
 msgstr "Este correo no puede abrir este documento."
 
-#: lib/readout_web/live/viewer_live.ex:742
+#: lib/readout_web/live/viewer_live.ex:741
 #, elixir-autogen, elixir-format
 msgid "This link has expired"
 msgstr "Este enlace ha caducado"
 
-#: lib/readout_web/live/viewer_live.ex:744
+#: lib/readout_web/live/viewer_live.ex:743
 #, elixir-autogen, elixir-format
 msgid "This link isn't available"
 msgstr "Este enlace no está disponible"
 
-#: lib/readout_web/live/viewer_live.ex:732
+#: lib/readout_web/live/viewer_live.ex:731
 #, elixir-autogen, elixir-format
 msgid "Too many attempts. Please wait a few minutes and try again."
 msgstr "Demasiados intentos. Espera unos minutos y vuelve a intentarlo."
 
-#: lib/readout_web/live/viewer_live.ex:736
+#: lib/readout_web/live/viewer_live.ex:735
 #, elixir-autogen, elixir-format
 msgid "Too many wrong codes. Send a new one."
 msgstr "Demasiados códigos incorrectos. Envía uno nuevo."
@@ -2688,7 +2682,7 @@ msgstr[0] "%{count} documento"
 msgstr[1] "%{count} documentos"
 
 #: lib/readout_web/live/viewer_live.ex:140
-#: lib/readout_web/live/viewer_live.ex:289
+#: lib/readout_web/live/viewer_live.ex:288
 #, elixir-autogen, elixir-format
 msgid "%{workspace} shared these documents with you"
 msgstr "%{workspace} ha compartido estos documentos contigo"
@@ -2862,6 +2856,7 @@ msgstr[0] "%{count} fila"
 msgstr[1] "%{count} filas"
 
 #: lib/readout_web/components/document_components.ex:46
+#: lib/readout_web/document_labels.ex:35
 #, elixir-autogen, elixir-format
 msgid "%{count} sheet"
 msgid_plural "%{count} sheets"
@@ -2928,3 +2923,8 @@ msgstr "Sube un archivo PDF, Word, PowerPoint o Excel para empezar a compartirlo
 #, elixir-autogen, elixir-format
 msgid "showing the first rows only"
 msgstr "solo se muestran las primeras filas"
+
+#: lib/readout_web/live/document_live/link_components.ex:279
+#, elixir-autogen, elixir-format
+msgid "Burns the viewer's email, the time and the visit into every page image and the PDF download, so leaks can be traced. Original files can't be downloaded."
+msgstr "Graba el correo del lector, la hora y la visita en cada imagen de página y en el PDF descargado, para poder rastrear filtraciones. No se pueden descargar los archivos originales."

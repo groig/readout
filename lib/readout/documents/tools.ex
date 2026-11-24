@@ -81,7 +81,12 @@ defmodule Readout.Documents.Tools do
 
   @doc "Whether every required tool is installed."
   def missing do
-    Enum.reject(~w(timeout soffice pdfinfo pdftoppm pdftotext cwebp), &System.find_executable/1)
+    tools = ~w(timeout soffice pdfinfo pdftoppm pdftotext cwebp fc-match)
+    missing = Enum.reject(tools, &System.find_executable/1)
+    # ImageMagick 7 (`magick`) or 6 (`convert`), for watermarks.
+    if System.find_executable("magick") || System.find_executable("convert"),
+      do: missing,
+      else: missing ++ ["magick"]
   end
 
   defp default_timeout, do: Application.get_env(:readout, Readout.Documents)[:tool_timeout] || 180

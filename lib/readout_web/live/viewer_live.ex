@@ -202,7 +202,7 @@ defmodule ReadoutWeb.ViewerLive do
               </.button>
               <.button
                 :if={
-                  @visit_token &&
+                  @visit_token && !@link.watermark &&
                     ((@link.allow_original_download and Version.office?(@version)) or
                        (@link.allow_download and Version.kind(@version) == :sheets))
                 }
@@ -236,7 +236,6 @@ defmodule ReadoutWeb.ViewerLive do
                   thumb_src={
                     &~p"/v/#{@link.slug}/p/#{@visit_token}/#{&1.number}/#{Pdf.thumb_width()}"
                   }
-                  watermark={@watermark}
                   track
                 />
               <% true -> %>

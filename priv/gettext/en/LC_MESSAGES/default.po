@@ -1106,7 +1106,7 @@ msgstr ""
 
 #: lib/readout_web/audit_labels.ex:13
 #: lib/readout_web/components/layouts.ex:441
-#: lib/readout_web/document_labels.ex:46
+#: lib/readout_web/document_labels.ex:55
 #: lib/readout_web/live/room_live/show.ex:282
 #: lib/readout_web/live/settings_live/workspace.ex:16
 #: lib/readout_web/live/settings_live/workspace.ex:114
@@ -1281,9 +1281,8 @@ msgid_plural "%{count} links"
 msgstr[0] ""
 msgstr[1] ""
 
+#: lib/readout_web/document_labels.ex:36
 #: lib/readout_web/live/command_palette.ex:198
-#: lib/readout_web/live/document_live/index.ex:461
-#: lib/readout_web/live/document_live/show.ex:145
 #: lib/readout_web/live/room_live/show.ex:121
 #: lib/readout_web/live/viewer_live.ex:165
 #, elixir-autogen, elixir-format
@@ -1369,7 +1368,7 @@ msgstr ""
 msgid "Drop to upload"
 msgstr ""
 
-#: lib/readout_web/document_labels.ex:49
+#: lib/readout_web/document_labels.ex:58
 #, elixir-autogen, elixir-format
 msgid "Editor"
 msgstr ""
@@ -1384,7 +1383,7 @@ msgstr ""
 msgid "Everyone in the workspace can see it."
 msgstr ""
 
-#: lib/readout_web/document_labels.ex:44
+#: lib/readout_web/document_labels.ex:53
 #, elixir-autogen, elixir-format
 msgid "Failed"
 msgstr ""
@@ -1498,7 +1497,7 @@ msgstr ""
 msgid "Previous page"
 msgstr ""
 
-#: lib/readout_web/document_labels.ex:42
+#: lib/readout_web/document_labels.ex:51
 #, elixir-autogen, elixir-format
 msgid "Processing"
 msgstr ""
@@ -1508,12 +1507,12 @@ msgstr ""
 msgid "Processing took too long and was stopped."
 msgstr ""
 
-#: lib/readout_web/document_labels.ex:41
+#: lib/readout_web/document_labels.ex:50
 #, elixir-autogen, elixir-format
 msgid "Queued"
 msgstr ""
 
-#: lib/readout_web/document_labels.ex:43
+#: lib/readout_web/document_labels.ex:52
 #, elixir-autogen, elixir-format
 msgid "Ready"
 msgstr ""
@@ -1534,7 +1533,7 @@ msgstr ""
 msgid "Rename"
 msgstr ""
 
-#: lib/readout_web/document_labels.ex:47
+#: lib/readout_web/document_labels.ex:56
 #: lib/readout_web/live/room_live/show.ex:52
 #, elixir-autogen, elixir-format
 msgid "Restricted"
@@ -1693,7 +1692,7 @@ msgstr ""
 msgid "Versions"
 msgstr ""
 
-#: lib/readout_web/document_labels.ex:50
+#: lib/readout_web/document_labels.ex:59
 #: lib/readout_web/live/document_live/analytics.ex:171
 #: lib/readout_web/live/document_live/analytics.ex:253
 #: lib/readout_web/live/document_live/analytics.ex:318
@@ -1774,7 +1773,7 @@ msgstr ""
 msgid "%{viewer} downloaded «%{subject}» via the «%{link}» link"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:291
+#: lib/readout_web/live/viewer_live.ex:290
 #, elixir-autogen, elixir-format
 msgid "%{workspace} shared a document with you"
 msgstr ""
@@ -1825,7 +1824,7 @@ msgstr ""
 msgid "Ask for an email"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:749
+#: lib/readout_web/live/viewer_live.ex:748
 #, elixir-autogen, elixir-format
 msgid "Ask the person who shared it for a new link."
 msgstr ""
@@ -1923,7 +1922,7 @@ msgstr ""
 msgid "Email required"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:485
+#: lib/readout_web/live/viewer_live.ex:484
 #, elixir-autogen, elixir-format
 msgid "Email verification isn't available right now. Please contact the sender."
 msgstr ""
@@ -1970,7 +1969,7 @@ msgstr ""
 msgid "If your email is in our system, you'll get a reset link shortly."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:747
+#: lib/readout_web/live/viewer_live.ex:746
 #, elixir-autogen, elixir-format
 msgid "It's being prepared. Please try again in a minute."
 msgstr ""
@@ -2060,7 +2059,7 @@ msgstr ""
 msgid "Password protected"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:728
+#: lib/readout_web/live/viewer_live.ex:727
 #, elixir-autogen, elixir-format
 msgid "Please enter a valid email address."
 msgstr ""
@@ -2107,19 +2106,14 @@ msgstr ""
 msgid "Share"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:324
+#: lib/readout_web/live/viewer_live.ex:323
 #, elixir-autogen, elixir-format
 msgid "Shared document"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:274
+#: lib/readout_web/live/viewer_live.ex:273
 #, elixir-autogen, elixir-format
 msgid "Shared securely with Readout"
-msgstr ""
-
-#: lib/readout_web/live/document_live/link_components.ex:279
-#, elixir-autogen, elixir-format
-msgid "Shows the viewer's email and the time over every page. A deterrent, not real protection."
 msgstr ""
 
 #: lib/readout_web/emails.ex:56
@@ -2127,17 +2121,17 @@ msgstr ""
 msgid "Sign in to Readout"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:735
+#: lib/readout_web/live/viewer_live.ex:734
 #, elixir-autogen, elixir-format
 msgid "That code has expired. Send a new one."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:734
+#: lib/readout_web/live/viewer_live.ex:733
 #, elixir-autogen, elixir-format
 msgid "That code isn't right."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:727
+#: lib/readout_web/live/viewer_live.ex:726
 #, elixir-autogen, elixir-format
 msgid "That password isn't right."
 msgstr ""
@@ -2163,32 +2157,32 @@ msgstr ""
 msgid "The link expires on %{date}."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:743
+#: lib/readout_web/live/viewer_live.ex:742
 #, elixir-autogen, elixir-format
 msgid "This document is almost ready"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:729
+#: lib/readout_web/live/viewer_live.ex:728
 #, elixir-autogen, elixir-format
 msgid "This email can't open this document."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:742
+#: lib/readout_web/live/viewer_live.ex:741
 #, elixir-autogen, elixir-format
 msgid "This link has expired"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:744
+#: lib/readout_web/live/viewer_live.ex:743
 #, elixir-autogen, elixir-format
 msgid "This link isn't available"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:732
+#: lib/readout_web/live/viewer_live.ex:731
 #, elixir-autogen, elixir-format
 msgid "Too many attempts. Please wait a few minutes and try again."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:736
+#: lib/readout_web/live/viewer_live.ex:735
 #, elixir-autogen, elixir-format
 msgid "Too many wrong codes. Send a new one."
 msgstr ""
@@ -2688,7 +2682,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/readout_web/live/viewer_live.ex:140
-#: lib/readout_web/live/viewer_live.ex:289
+#: lib/readout_web/live/viewer_live.ex:288
 #, elixir-autogen, elixir-format
 msgid "%{workspace} shared these documents with you"
 msgstr ""
@@ -2862,6 +2856,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/readout_web/components/document_components.ex:46
+#: lib/readout_web/document_labels.ex:35
 #, elixir-autogen, elixir-format
 msgid "%{count} sheet"
 msgid_plural "%{count} sheets"
@@ -2927,4 +2922,9 @@ msgstr ""
 #: lib/readout_web/components/sheet_components.ex:149
 #, elixir-autogen, elixir-format
 msgid "showing the first rows only"
+msgstr ""
+
+#: lib/readout_web/live/document_live/link_components.ex:279
+#, elixir-autogen, elixir-format
+msgid "Burns the viewer's email, the time and the visit into every page image and the PDF download, so leaks can be traced. Original files can't be downloaded."
 msgstr ""

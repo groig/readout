@@ -101,9 +101,13 @@ bound to the visit (2 hours). Every request re-checks the link, so disabling or 
 access immediately. Downloads use the same token, require `allow_download`, and are audited with
 the viewer's email.
 
-**Watermark**: a CSS overlay tiled over each page with the viewer's email and time. It is a
-deterrent only: page images are unmarked, and screenshots or devtools defeat it. Burned-in
-watermarks are out of MVP scope.
+**Watermark** (burned in): for links with `watermark`, `Documents.Watermark` tiles the reader's
+email, the visit's start time and a short visit id diagonally into every page image and thumbnail
+(ImageMagick, rendered on first request and cached per visit under `cache_dir`, pruned daily by an
+Oban cron job). PDF downloads of such links are rebuilt from the watermarked pages as JPEGs by
+`Documents.PdfWriter` (a minimal PDF writer, no dependency), and original files are never offered.
+Spreadsheets, rendered as HTML tables, keep a CSS overlay. It survives screenshots and leaked files
+and traces them to one visit; it can't stop someone retyping the content.
 
 ## Tracking and analytics (milestone 4)
 

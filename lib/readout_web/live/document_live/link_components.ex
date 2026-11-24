@@ -265,7 +265,7 @@ defmodule ReadoutWeb.DocumentLive.LinkComponents do
             hint={gettext("Viewers can download the PDF.")}
           />
           <.input
-            :if={@office? and field_on?(@form, :allow_download)}
+            :if={@office? and field_on?(@form, :allow_download) and not field_on?(@form, :watermark)}
             field={@form[:allow_original_download]}
             type="switch"
             label={gettext("Also the original file")}
@@ -277,7 +277,7 @@ defmodule ReadoutWeb.DocumentLive.LinkComponents do
             label={gettext("Watermark")}
             hint={
               gettext(
-                "Shows the viewer's email and the time over every page. A deterrent, not real protection."
+                "Burns the viewer's email, the time and the visit into every page image and the PDF download, so leaks can be traced. Original files can't be downloaded."
               )
             }
           />

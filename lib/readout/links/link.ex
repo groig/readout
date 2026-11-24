@@ -154,6 +154,13 @@ defmodule Readout.Links.Link do
         else: put_change(&1, :allow_original_download, false)
       )
     )
+    # Originals can't carry a watermark.
+    |> then(
+      &if(get_field(&1, :watermark),
+        do: put_change(&1, :allow_original_download, false),
+        else: &1
+      )
+    )
   end
 
   @doc "A new random, unguessable slug (128 bits)."
