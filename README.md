@@ -21,7 +21,7 @@ What it does:
   same link settings; each document read counts in its own analytics and in the room's roll-up.
 - **Analytics**: who opened what, which pages and for how long (measured on the server), live
   "reading now" with the reader's current page, per-link and per-viewer breakdowns, and an
-  activity feed. In-app notifications when someone opens or finishes a document you follow.
+  activity feed, and CSV exports of visits and time per page. In-app notifications when someone opens or finishes a document you follow.
 - **Team**: owners, admins, members and observers; invitations; audit log; English and Spanish.
 
 See `docs/ARCHITECTURE.md` for the design (data model, tracking, security).

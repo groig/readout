@@ -105,6 +105,16 @@ defmodule Readout.PolicyTest do
       end
     end
 
+    test "analytics exports: whoever views the document, except observers" do
+      for role <- @roles do
+        actor = scope(role)
+        open = doc(Ecto.UUID.generate(), :workspace)
+        closed = doc(Ecto.UUID.generate(), :restricted)
+        assert Policy.can?(actor, :export_analytics, open) == (role != :observer)
+        assert Policy.can?(actor, :export_analytics, closed) == role in [:owner, :admin]
+      end
+    end
+
     test "restricted documents: only owner, people added and admins view them" do
       for role <- @roles do
         actor = scope(role)

@@ -88,6 +88,7 @@ defmodule ReadoutWeb.Router do
 
     get "/documents/:id/v/:version_id/pages/:number/:width", DocumentFileController, :page
     get "/documents/:id/v/:version_id/download/:kind", DocumentFileController, :download
+    get "/documents/:id/analytics/export/:kind", AnalyticsExportController, :show
     post "/users/update-password", UserSessionController, :update_password
   end
 

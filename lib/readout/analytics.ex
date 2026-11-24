@@ -303,6 +303,27 @@ defmodule Readout.Analytics do
 
   defp viewer_filter(query, email), do: where(query, [v], v.email == ^email)
 
+  @export_limit 50_000
+
+  @doc """
+  Visits for an export (newest first, up to #{@export_limit}), with their link,
+  version and page views. Same filters as the dashboard: `:range`,
+  `:version_id`.
+  """
+  def export_visits(%Scope{} = scope, %Document{} = doc, opts \\ []) do
+    authorize!(scope, doc)
+    {from, _} = range_bounds(opts[:range])
+
+    page_views = from(p in PageView, order_by: p.page)
+
+    visits(doc, opts)
+    |> since(from)
+    |> order_by(desc: :started_at)
+    |> limit(@export_limit)
+    |> preload([:link, :version, page_views: ^page_views])
+    |> Repo.all()
+  end
+
   @doc "One visit with its pages in the order they were first seen."
   def get_visit(%Scope{} = scope, id) do
     with {:ok, _} <- Ecto.UUID.cast(id),

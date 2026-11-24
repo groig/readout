@@ -68,6 +68,9 @@ defmodule ReadoutWeb.AuditLabels do
       "document.deleted" ->
         gettext("%{actor} deleted «%{subject}»", actor: actor, subject: subject)
 
+      "analytics.exported" ->
+        gettext("%{actor} exported the analytics of «%{subject}»", actor: actor, subject: subject)
+
       "document.downloaded" ->
         if meta["via"] == "link" do
           gettext("%{viewer} downloaded «%{subject}» via the «%{link}» link",
@@ -128,6 +131,7 @@ defmodule ReadoutWeb.AuditLabels do
       "room." <> _ -> "hero-rectangle-stack"
       "link." <> _ -> "hero-link"
       "document.downloaded" -> "hero-arrow-down-tray"
+      "analytics.exported" -> "hero-table-cells"
       "document." <> _ -> "hero-document-text"
       _ -> "hero-bolt"
     end

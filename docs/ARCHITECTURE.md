@@ -144,6 +144,13 @@ viewers (grouped by email, or anonymous by IP), recent visits, a visit's page-by
 and the workspace overview. All require `:view_document`; the workspace views only include
 documents the person can see.
 
+**Exports** (`ReadoutWeb.AnalyticsExportController`, `GET /documents/:id/analytics/export/:kind`):
+CSV of visits or of time per page per visit, with the dashboard's range and version filters, up to
+50,000 visits. Times are ISO 8601 in the person's time zone, durations in seconds, locations and
+headers in their language; sheet names for spreadsheets. `Readout.CSV` writes a BOM (Excel) and
+defuses formula-looking cells, since emails are typed by strangers. Needs `:export_analytics`
+(viewers of the document except observers, since files hold emails and IPs) and is audited.
+
 ## Spreadsheets (CSV, XLSX, ODS)
 
 A version's `kind` is `:pages` (documents) or `:sheets` (`xlsx`, `ods`, `csv`). For sheets,

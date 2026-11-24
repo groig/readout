@@ -33,6 +33,9 @@ defmodule Readout.Policy do
 
   Observers never change anything, whatever else applies.
 
+    * `:export_analytics` - download visits as CSV (emails, IPs): whoever
+      can view the document, except observers.
+
   ## Rooms
 
     * `:create_room` (on `:workspace`) - like uploading: owners, admins, members.
@@ -114,6 +117,12 @@ defmodule Readout.Policy do
 
   defp allowed?(%User{} = user, :edit_document, %Document{} = doc),
     do: member_role(doc, user) == :editor
+
+  # Exports hold viewers' emails and IPs: not for observers.
+  defp allowed?(%User{role: :observer}, :export_analytics, %Document{}), do: false
+
+  defp allowed?(%User{} = user, :export_analytics, %Document{} = doc),
+    do: allowed?(user, :view_document, doc)
 
   ## Rooms
 

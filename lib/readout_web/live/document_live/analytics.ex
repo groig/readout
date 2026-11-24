@@ -7,6 +7,8 @@ defmodule ReadoutWeb.DocumentLive.Analytics do
   """
   use ReadoutWeb, :live_view
 
+  alias Readout.Policy
+
   alias Readout.{Analytics, Documents, GeoIP}
   alias ReadoutWeb.Presence
 
@@ -53,6 +55,28 @@ defmodule ReadoutWeb.DocumentLive.Analytics do
             wrapper_class="w-40"
           />
         </.form>
+        <.dropdown
+          :if={Policy.can?(@current_scope, :export_analytics, @document)}
+          id="analytics-export"
+          class="ms-auto"
+        >
+          <:trigger>
+            <.button variant="secondary" icon="hero-arrow-down-tray-mini">{gettext("Export")}</.button>
+          </:trigger>
+          <:item label>{gettext("CSV, with the filters above")}</:item>
+          <:item
+            icon="hero-table-cells-mini"
+            href={~p"/documents/#{@document}/analytics/export/visits?#{@params}"}
+          >
+            {gettext("Visits")}
+          </:item>
+          <:item
+            icon="hero-document-text-mini"
+            href={~p"/documents/#{@document}/analytics/export/pages?#{@params}"}
+          >
+            {gettext("Time per page")}
+          </:item>
+        </.dropdown>
       </div>
 
       <section id="reading-now" class="mb-6 rounded-xl border border-border bg-surface p-4 shadow-xs">
