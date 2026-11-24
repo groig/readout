@@ -21,6 +21,7 @@ defmodule ReadoutWeb.NotificationsComponentTest do
     for job <- all_enqueued(worker: Readout.Notifications.DeliverJob),
         do: perform_job(Readout.Notifications.DeliverJob, job.args)
 
+    assert_push_event(lv, "toast", %{message: _})
     assert has_element?(lv, "#notifications-unread", "1")
     [n | _] = Readout.Notifications.list(scope)
     assert has_element?(lv, "#notification-#{n.id}")
