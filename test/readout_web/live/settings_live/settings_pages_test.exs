@@ -33,11 +33,10 @@ defmodule ReadoutWeb.SettingsLive.SettingsPagesTest do
       {:ok, lv, _html} = live(conn, ~p"/settings/workspace")
 
       lv
-      |> form("#workspace-form", settings: %{"name" => "Crinno", "notification_locale" => "es"})
+      |> form("#workspace-form", settings: %{"name" => "Crinno"})
       |> render_submit()
 
       assert Readout.Workspace.get_settings().name == "Crinno"
-      assert Readout.Workspace.get_settings().notification_locale == "es"
     end
 
     test "owners transfer ownership after confirming", %{conn: conn} do

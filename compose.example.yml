@@ -31,7 +31,6 @@ services:
       MAIL_FROM: ${MAIL_FROM:-infra@example.com}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Readout}
       # Optional
-      ROCKETCHAT_WEBHOOK_URL: ${ROCKETCHAT_WEBHOOK_URL:-}
       GEOIP_DB_PATH: /data/geoip/city.mmdb
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-100}
       # Proxies allowed to set X-Forwarded-For / -Proto (Caddy's address range).

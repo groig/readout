@@ -227,6 +227,7 @@ defmodule Readout.Links do
       version_id: link.document.current_version_id,
       email: attrs[:email],
       email_verified: !!attrs[:email_verified],
+      device_id: attrs[:device_id],
       ip: attrs[:ip],
       user_agent: attrs[:user_agent] && String.slice(attrs[:user_agent], 0, 400),
       started_at: now,

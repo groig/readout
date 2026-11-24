@@ -353,7 +353,10 @@ defmodule Readout.Documents do
 
       {:ok, version}
     end)
-    |> tap(fn {:ok, v} -> broadcast(v.document_id, :document_updated) end)
+    |> tap(fn {:ok, v} ->
+      broadcast(v.document_id, :document_updated)
+      Readout.Notifications.version_processed(v)
+    end)
   end
 
   @doc false
@@ -364,6 +367,7 @@ defmodule Readout.Documents do
       |> Repo.update!()
 
     broadcast(version.document_id, :document_updated)
+    Readout.Notifications.version_processed(version)
     version
   end
 

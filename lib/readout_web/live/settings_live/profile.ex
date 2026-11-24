@@ -126,15 +126,6 @@ defmodule ReadoutWeb.SettingsLive.Profile do
                     gettext("When someone opens a document you own, and when they finish reading.")
                   }
                 />
-                <.input
-                  field={@form[:chat_username]}
-                  label={gettext("Rocket.Chat username")}
-                  placeholder="alex.morgan"
-                  hint={
-                    gettext("Optional. You'll be @mentioned in the team channel's notifications.")
-                  }
-                  autocomplete="off"
-                />
               </div>
             </.card>
           </section>

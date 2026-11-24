@@ -255,6 +255,7 @@ defmodule ReadoutWeb.ViewerLive do
          |> assign(:link, link)
          |> assign(:page_title, link.document.title)
          |> assign(:known_email, known_email(session, link))
+         |> assign(:device_id, session["device:" <> link.slug])
          |> enter(ViewerAccess.grant(session, link))}
 
       {:error, reason} ->
@@ -306,6 +307,7 @@ defmodule ReadoutWeb.ViewerLive do
         Links.start_visit(link, %{
           email: email,
           email_verified: verified?,
+          device_id: socket.assigns.device_id,
           ip: ClientIP.from_socket(socket),
           user_agent: get_connect_info(socket, :user_agent)
         })
@@ -479,6 +481,7 @@ defmodule ReadoutWeb.ViewerLive do
       Links.start_visit(link, %{
         email: email,
         email_verified: verified?,
+        device_id: socket.assigns.device_id,
         ip: ClientIP.from_socket(socket),
         user_agent: get_connect_info(socket, :user_agent)
       })

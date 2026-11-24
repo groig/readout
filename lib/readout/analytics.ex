@@ -129,7 +129,7 @@ defmodule Readout.Analytics do
     from(v in query,
       select: %{
         visits: count(v.id),
-        unique: count(fragment("DISTINCT coalesce(?::text, ?)", v.email, v.ip)),
+        unique: count(fragment("DISTINCT coalesce(?::text, ?, ?)", v.email, v.device_id, v.ip)),
         total_ms: coalesce(sum(v.duration_ms), 0),
         completed: filter(count(v.id), v.pages_viewed >= v.page_count and v.page_count > 0)
       }
@@ -228,7 +228,7 @@ defmodule Readout.Analytics do
         link_id: l.id,
         name: l.name,
         visits: count(v.id),
-        unique: count(fragment("DISTINCT coalesce(?::text, ?)", v.email, v.ip)),
+        unique: count(fragment("DISTINCT coalesce(?::text, ?, ?)", v.email, v.device_id, v.ip)),
         avg_ms: coalesce(avg(v.duration_ms), 0)
       }
     )
@@ -240,19 +240,21 @@ defmodule Readout.Analytics do
   defp to_float(n), do: n * 1.0
 
   @doc """
-  People who read the document: by email, or anonymous by IP (with their
-  location). Most recent first.
+  People who read the document: by email, or anonymous by device (a cookie
+  per link; by IP when cookies were blocked), with their location. Most
+  recent first.
   """
   def viewers(%Scope{} = scope, %Document{} = doc, opts \\ []) do
     authorize!(scope, doc)
     {from, _} = range_bounds(opts[:range])
 
     from(v in (visits(doc, opts) |> since(from)),
-      group_by: fragment("coalesce(?::text, 'ip:' || ?)", v.email, v.ip),
+      group_by:
+        fragment("coalesce(?::text, 'dev:' || ?, 'ip:' || ?)", v.email, v.device_id, v.ip),
       order_by: [desc: max(v.started_at)],
       limit: 200,
       select: %{
-        key: fragment("coalesce(?::text, 'ip:' || ?)", v.email, v.ip),
+        key: fragment("coalesce(?::text, 'dev:' || ?, 'ip:' || ?)", v.email, v.device_id, v.ip),
         email: max(v.email),
         verified: fragment("bool_or(?)", v.email_verified),
         ip: max(v.ip),
@@ -291,7 +293,13 @@ defmodule Readout.Analytics do
   end
 
   defp viewer_filter(query, nil), do: query
-  defp viewer_filter(query, "ip:" <> ip), do: where(query, [v], is_nil(v.email) and v.ip == ^ip)
+
+  defp viewer_filter(query, "dev:" <> id),
+    do: where(query, [v], is_nil(v.email) and v.device_id == ^id)
+
+  defp viewer_filter(query, "ip:" <> ip),
+    do: where(query, [v], is_nil(v.email) and is_nil(v.device_id) and v.ip == ^ip)
+
   defp viewer_filter(query, email), do: where(query, [v], v.email == ^email)
 
   @doc "One visit with its pages in the order they were first seen."

@@ -339,6 +339,12 @@ defmodule ReadoutWeb.Layouts do
             <span class="block truncate text-2xs text-fg-subtle">{role_label(@user.role)}</span>
           </span>
         </.link>
+        <.live_component
+          module={ReadoutWeb.NotificationsComponent}
+          id="notifications"
+          current_scope={@current_scope}
+          locale={Gettext.get_locale(ReadoutWeb.Gettext)}
+        />
         <.theme_toggle id="sidebar-theme" compact />
       </div>
     </aside>
@@ -485,6 +491,7 @@ defmodule ReadoutWeb.Layouts do
        [
          {gettext("Open command palette"), ["mod", "K"]},
          {gettext("Upload a document"), ["U"]},
+         {gettext("Notifications"), ["N"]},
          {gettext("Show keyboard shortcuts"), ["?"]},
          {gettext("Toggle sidebar"), ["["]},
          {gettext("Focus search"), ["/"]}

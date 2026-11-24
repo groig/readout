@@ -1,7 +1,7 @@
 defmodule Readout.Workspace do
   @moduledoc """
-  Workspace-wide settings (name, notification language). One workspace for the
-  whole team; only owners can change it.
+  Workspace-wide settings (the name). One workspace for the whole team; only
+  owners can change it.
   """
 
   alias Readout.Accounts.Scope
@@ -29,10 +29,7 @@ defmodule Readout.Workspace do
   def update_settings(%Scope{} = scope, attrs) do
     with :ok <- Policy.authorize(scope, :manage_workspace, :workspace),
          {:ok, settings} <- get_settings() |> Settings.changeset(attrs) |> Repo.update() do
-      Audit.log(scope, "workspace.updated", nil, %{
-        name: settings.name,
-        notification_locale: settings.notification_locale
-      })
+      Audit.log(scope, "workspace.updated", nil, %{name: settings.name})
 
       Phoenix.PubSub.broadcast(Readout.PubSub, @topic, {:workspace_updated, settings})
       {:ok, settings}

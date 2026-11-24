@@ -111,6 +111,11 @@ watermarks are out of MVP scope.
 page), whether the tab is visible (`visibilitychange`), and "still here" pings on interaction
 (at most every 15 s). Events go over the viewer's LiveView socket; there is no extra endpoint.
 
+**Unique viewers** are counted by email when there is one, else by device: a random id in a
+first-party, HTTP-only cookie per link (`rd_<slug>`, set by the viewer plug), else by IP (when
+cookies are blocked). People behind one office IP are told apart; one person on two devices
+counts twice.
+
 **What the server measures** (`Readout.Analytics.Tracker`, a pure state machine owned by the
 viewer's LiveView): time accrues to the current page by the server's monotonic clock only while
 the tab is visible, and only up to 2 minutes after the last sign of activity (idle readers stop
@@ -144,17 +149,22 @@ built email **encrypted with `SECRET_KEY_BASE`**, so tokens and codes are never 
 sign-in link and password-reset options are hidden, and links can't enable verification.
 Production SMTP: STARTTLS on 587 with certificate and hostname verification (Office 365).
 
-## Notifications (milestone 5)
+## Notifications
 
-`Readout.Notifications` posts to a Rocket.Chat incoming webhook (`ROCKETCHAT_WEBHOOK_URL`) from
-an Oban job (`RocketChatJob`, 5 attempts) when a visit starts ("ana@client.com opened «Q3 Report»
-via the «Client X» link") and when it ends with reading (pages seen, total time, top page), in the
-workspace's notification language, with a link to the visit in analytics.
+In-app only (the Rocket.Chat webhook from milestone 5 was removed on request).
+`Readout.Notifications` creates **notifications** rows per person (kind, document, visit, a
+`data` snapshot, `read_at`) and broadcasts `{:notification, id}` on `notifications:<user_id>`;
+the shell forwards it to the bell (`ReadoutWeb.NotificationsComponent`: unread count, sheet,
+toast). Text is rendered at display time in the reader's own language
+(`ReadoutWeb.NotificationLabels`).
 
-Per user and document (**document_subscriptions**; the bell on the document page): by default you
-follow documents you own, if your profile's notification switch is on. A document posts only
-when at least one active person who can see it follows it; followers with a Rocket.Chat username
-(profile) are @mentioned, so the channel post reaches them personally.
+- Visit opened / finished (pages seen, total time, top page): created by
+  `Notifications.DeliverJob` (Oban) for every **follower** of the document.
+- Version ready / failed: for the uploader.
+
+Following (**document_subscriptions**; the bell on the document page): by default you follow the
+documents you own, if your profile's notification switch is on. Only active people who can see
+the document are notified.
 
 ## Deployment (milestone 5)
 

@@ -15,6 +15,7 @@ defmodule ReadoutWeb.Shell do
     # pages update live). See handle_info/2 below.
     if connected?(socket) and match?(%Scope{user: %{}}, scope) do
       Readout.Documents.subscribe(scope)
+      Readout.Notifications.subscribe(scope)
     end
 
     {:cont,
@@ -42,6 +43,12 @@ defmodule ReadoutWeb.Shell do
         do: view.handle_document_event(event, id, socket),
         else: socket
 
+    {:halt, socket}
+  end
+
+  # New in-app notifications go to the bell.
+  defp handle_info({:notification, id}, socket) do
+    Phoenix.LiveView.send_update(ReadoutWeb.NotificationsComponent, id: "notifications", new: id)
     {:halt, socket}
   end
 

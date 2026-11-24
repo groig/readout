@@ -45,7 +45,6 @@ defmodule ReadoutWeb.DocumentLive.Show do
           {gettext("New version")}
         </.button>
         <.icon_button
-          :if={@notifications_enabled}
           id="notify-toggle"
           icon={if(@subscribed, do: "hero-bell-alert-mini", else: "hero-bell-slash-mini")}
           label={
@@ -550,7 +549,6 @@ defmodule ReadoutWeb.DocumentLive.Show do
     |> assign(:can_edit, Policy.can?(scope, :edit_document, document))
     |> assign(:can_manage, Policy.can?(scope, :manage_document, document))
     |> assign(:candidates, candidates)
-    |> assign(:notifications_enabled, Readout.Notifications.enabled?())
     |> assign(:subscribed, Readout.Notifications.subscribed?(scope, document))
     |> assign(:title_form, to_form(Documents.change_title(document)))
     |> load_pages()
@@ -649,7 +647,7 @@ defmodule ReadoutWeb.DocumentLive.Show do
         message =
           if subscribed,
             do: gettext("You won't get notifications for this document."),
-            else: gettext("You'll get a notification when someone reads this document.")
+            else: gettext("You'll be notified in Readout when someone reads this document.")
 
         {:noreply, socket |> assign(:subscribed, !subscribed) |> put_flash(:info, message)}
 

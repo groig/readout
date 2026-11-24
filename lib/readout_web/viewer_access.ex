@@ -7,6 +7,8 @@ defmodule ReadoutWeb.ViewerAccess do
       changing a password or the allow list sends everyone back to the gate.
     * **Verified emails** are remembered on the device for 30 days in a signed
       cookie per link (`rv_<slug>`), so returning viewers skip the code.
+    * **Devices**: a random id per browser and link (`rd_<slug>`), to count
+      anonymous viewers by device rather than by IP.
     * **Page and download URLs** carry a `Phoenix.Token` bound to the visit,
       valid for two hours.
   """
@@ -26,15 +28,42 @@ defmodule ReadoutWeb.ViewerAccess do
   def call(%Plug.Conn{path_info: ["v", slug | _]} = conn, _opts) do
     conn = fetch_cookies(conn, signed: [cookie_name(slug)])
 
-    case conn.cookies[cookie_name(slug)] do
-      email when is_binary(email) -> put_session(conn, "verified:" <> slug, email)
-      _ -> conn
-    end
+    conn =
+      case conn.cookies[cookie_name(slug)] do
+        email when is_binary(email) -> put_session(conn, "verified:" <> slug, email)
+        _ -> conn
+      end
+
+    ensure_device(conn, slug)
   end
 
   def call(conn, _opts), do: conn
 
   def cookie_name(slug), do: "rv_" <> slug
+
+  # A random id per browser and link (first-party, HTTP-only, a year), so
+  # anonymous readers count as distinct viewers even behind one IP. It holds
+  # nothing but randomness and is scoped to the link's path.
+  defp ensure_device(conn, slug) do
+    name = "rd_" <> slug
+
+    case conn.cookies[name] do
+      id when is_binary(id) and byte_size(id) in 16..32 ->
+        put_session(conn, "device:" <> slug, id)
+
+      _ ->
+        id = 12 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+
+        conn
+        |> put_resp_cookie(name, id,
+          max_age: 365 * 24 * 3600,
+          same_site: "Lax",
+          http_only: true,
+          path: "/v/" <> slug
+        )
+        |> put_session("device:" <> slug, id)
+    end
+  end
 
   def remember_verified(conn, slug, email) do
     put_resp_cookie(conn, cookie_name(slug), email,

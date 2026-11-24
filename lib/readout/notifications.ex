@@ -1,33 +1,31 @@
 defmodule Readout.Notifications do
   @moduledoc """
-  Rocket.Chat notifications (optional: `ROCKETCHAT_WEBHOOK_URL`, an incoming
-  webhook for the team channel).
+  In-app notifications: the bell in the sidebar.
 
-  When someone opens a document through a link, the channel gets
-  "ana@client.com opened «Q3 Report» via the «Client X» link"; when the visit
-  ends, a short summary (pages seen, total time, top page). Messages use the
-  workspace's notification language.
+  When someone opens a document through a link, its followers get
+  "ana@client.com opened «Q3 Report» via «Client X»"; when the visit ends, a
+  short summary (pages seen, total time, top page). Uploaders also hear when
+  their file is ready or couldn't be processed. New notifications arrive live
+  (PubSub topic per person).
 
-  Each person chooses per document (`set_subscription/3`); by default you
-  follow the documents you own, if your profile allows notifications. A
-  document posts only when someone who can see it follows it, and followers
-  with a Rocket.Chat username are @mentioned.
+  Following is per person and document (the bell on the document page): by
+  default you follow the documents you own, if your profile allows
+  notifications. Only people who can see a document are notified about it.
   """
 
   import Ecto.Query, warn: false
 
   alias Readout.Accounts.{Scope, User}
-  alias Readout.Documents.Document
+  alias Readout.Documents.{Document, Version}
   alias Readout.Links.Visit
-  alias Readout.Notifications.{RocketChatJob, Subscription}
+  alias Readout.Notifications.{DeliverJob, Notification, Subscription}
   alias Readout.{Policy, Repo}
 
-  def enabled?, do: webhook_url() not in [nil, ""]
-  def webhook_url, do: Application.get_env(:readout, :rocketchat_webhook_url)
+  @page_size 30
 
   ## Following documents
 
-  @doc "Whether the scope's user gets notifications for this document."
+  @doc "Whether the scope's user is notified about this document."
   def subscribed?(%Scope{user: user}, %Document{} = doc) do
     case Repo.get_by(Subscription, user_id: user.id, document_id: doc.id) do
       %Subscription{enabled: enabled} -> enabled
@@ -62,16 +60,95 @@ defmodule Readout.Notifications do
     end)
   end
 
-  ## Events (called by Readout.Links)
+  ## Events
 
-  def visit_started(%Visit{} = visit), do: enqueue(visit, "opened")
+  @doc "Someone passed a link's gate (called by Readout.Links)."
+  def visit_started(%Visit{} = visit), do: enqueue(visit, "visit_opened")
 
-  def visit_ended(%Visit{} = visit), do: enqueue(visit, "finished")
+  @doc "A visit ended (called by Readout.Links)."
+  def visit_ended(%Visit{} = visit), do: enqueue(visit, "visit_finished")
 
-  defp enqueue(visit, event) do
-    if enabled?() do
-      %{"visit_id" => visit.id, "event" => event} |> RocketChatJob.new() |> Oban.insert()
+  defp enqueue(visit, kind) do
+    %{"visit_id" => visit.id, "kind" => kind} |> DeliverJob.new() |> Oban.insert()
+    :ok
+  end
+
+  @doc "Tells the uploader their version is ready or failed (called by Readout.Documents)."
+  def version_processed(%Version{uploaded_by_id: nil}), do: :ok
+
+  def version_processed(%Version{} = version) do
+    doc = Repo.get(Document, version.document_id) |> Repo.preload(:members)
+    user = Repo.get(User, version.uploaded_by_id)
+
+    if doc && user && User.active?(user) && Policy.can?(Scope.for_user(user), :view_document, doc) do
+      kind = if version.status == :ready, do: "version_ready", else: "version_failed"
+
+      create(user, doc, nil, kind, %{
+        "title" => doc.title,
+        "version" => version.number,
+        "error" => version.error
+      })
     end
+
+    :ok
+  end
+
+  @doc false
+  def create(%User{} = user, %Document{} = doc, visit_id, kind, data) do
+    notification =
+      Repo.insert!(%Notification{
+        user_id: user.id,
+        document_id: doc.id,
+        visit_id: visit_id,
+        kind: kind,
+        data: data,
+        inserted_at: DateTime.utc_now()
+      })
+
+    Phoenix.PubSub.broadcast(Readout.PubSub, topic(user.id), {:notification, notification.id})
+    notification
+  end
+
+  ## Reading
+
+  def subscribe(%Scope{user: %User{id: id}}),
+    do: Phoenix.PubSub.subscribe(Readout.PubSub, topic(id))
+
+  defp topic(user_id), do: "notifications:" <> user_id
+
+  @doc "The scope's notifications, newest first."
+  def list(%Scope{user: user}, opts \\ []) do
+    from(n in Notification,
+      where: n.user_id == ^user.id,
+      order_by: [desc: n.inserted_at],
+      limit: ^Keyword.get(opts, :limit, @page_size)
+    )
+    |> Repo.all()
+  end
+
+  def get(%Scope{user: user}, id) do
+    with {:ok, _} <- Ecto.UUID.cast(id),
+         do: Repo.get_by(Notification, id: id, user_id: user.id),
+         else: (_ -> nil)
+  end
+
+  def unread_count(%Scope{user: user}) do
+    Repo.aggregate(
+      from(n in Notification, where: n.user_id == ^user.id and is_nil(n.read_at)),
+      :count
+    )
+  end
+
+  def mark_read(%Scope{user: user}, id) do
+    from(n in Notification, where: n.id == ^id and n.user_id == ^user.id and is_nil(n.read_at))
+    |> Repo.update_all(set: [read_at: DateTime.utc_now(:second)])
+
+    :ok
+  end
+
+  def mark_all_read(%Scope{user: user}) do
+    from(n in Notification, where: n.user_id == ^user.id and is_nil(n.read_at))
+    |> Repo.update_all(set: [read_at: DateTime.utc_now(:second)])
 
     :ok
   end

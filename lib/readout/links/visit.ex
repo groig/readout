@@ -21,6 +21,7 @@ defmodule Readout.Links.Visit do
     field :last_seen_at, :utc_datetime_usec
     field :ended_at, :utc_datetime_usec
 
+    field :device_id, :string
     field :country_code, :string
     field :country, :map, default: %{}
     field :city, :map, default: %{}

@@ -1,5 +1,5 @@
 defmodule ReadoutWeb.SettingsLive.Workspace do
-  @moduledoc "Settings → Workspace (owners): name, notification language, ownership transfer."
+  @moduledoc "Settings → Workspace (owners): name and ownership transfer."
   use ReadoutWeb, :live_view
 
   on_mount {ReadoutWeb.UserAuth, {:can, :manage_workspace}}
@@ -34,13 +34,6 @@ defmodule ReadoutWeb.SettingsLive.Workspace do
               class="space-y-5"
             >
               <.input field={@form[:name]} label={gettext("Workspace name")} />
-              <.input
-                field={@form[:notification_locale]}
-                type="select"
-                label={gettext("Notification language")}
-                hint={gettext("Language of the chat notifications sent to the team channel.")}
-                options={[{"English", "en"}, {"Español", "es"}]}
-              />
               <div class="flex justify-end">
                 <.button type="submit" variant="primary" id="save-workspace">
                   {gettext("Save")}

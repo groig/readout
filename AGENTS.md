@@ -46,9 +46,10 @@ These rules were settled while building the app and take precedence over the gen
   stranger can trigger (`Readout.RateLimit`, keyed by `ReadoutWeb.ClientIP`).
 - **Analytics**: the client never reports durations. Anything time-based is measured on the server
   (`Readout.Analytics.Tracker`). Live analytics messages carry ids only; re-read through the scope.
-- **Notifications** go through `Readout.Notifications` (Oban job, built at send time, workspace
-  notification language). HTTP calls use `Req` with options from config so tests can stub them
-  with `Req.Test`.
+- **Notifications** are in-app only: create them through `Readout.Notifications` (rows plus a
+  PubSub message per person); render their text with `ReadoutWeb.NotificationLabels` in the
+  reader's language. HTTP calls, if ever added, use `Req` with options from config so tests can
+  stub them with `Req.Test`.
 - **Deployment**: configuration comes only from environment variables (`config/runtime.exs`).
   New system tools must be added to the `Dockerfile` runner stage and to
   `Readout.Documents.Tools.missing/0`.

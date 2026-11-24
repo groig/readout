@@ -143,6 +143,5 @@ if config_env() == :prod do
     config :readout, :mail_enabled, false
   end
 
-  config :readout, :rocketchat_webhook_url, System.get_env("ROCKETCHAT_WEBHOOK_URL")
   config :readout, :geoip_db_path, System.get_env("GEOIP_DB_PATH")
 end

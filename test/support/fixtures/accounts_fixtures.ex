@@ -28,7 +28,7 @@ defmodule Readout.AccountsFixtures do
     {role, attrs} = Map.pop(attrs, :role, :member)
     # Profile-only fields are set after creation, as people do in their profile.
     {profile, attrs} =
-      Map.split(attrs, [:chat_username, :notifications_enabled, :avatar_color, :theme])
+      Map.split(attrs, [:notifications_enabled, :avatar_color, :theme])
 
     %User{}
     |> User.create_changeset(valid_user_attributes(attrs), role)

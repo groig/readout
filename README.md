@@ -16,7 +16,7 @@ What it does:
   block lists), verified email (6-digit code), download and watermark.
 - **Analytics**: who opened what, which pages and for how long (measured on the server), live
   "reading now" with the reader's current page, per-link and per-viewer breakdowns, and an
-  activity feed. Optional Rocket.Chat notifications.
+  activity feed. In-app notifications when someone opens or finishes a document you follow.
 - **Team**: owners, admins, members and observers; invitations; audit log; English and Spanish.
 
 See `docs/ARCHITECTURE.md` for the design (data model, tracking, security).
@@ -97,7 +97,6 @@ Configuration (environment variables only):
 | `STORAGE_PATH` | yes (image default `/data/storage`) | where files live |
 | `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD` | no | email (Office 365: `smtp.office365.com`, STARTTLS); without it invitations are copy-only and links can't verify emails |
 | `MAIL_FROM`, `MAIL_FROM_NAME` (`Readout`) | no | sender |
-| `ROCKETCHAT_WEBHOOK_URL` | no | incoming webhook for reading notifications |
 | `GEOIP_DB_PATH` | no | MaxMind DB file (e.g. DB-IP Lite City) for viewer locations |
 | `TRUSTED_PROXIES` | no | CIDRs allowed to set `X-Forwarded-For` / `-Proto` (default: loopback + private ranges) |
 | `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s), `POOL_SIZE` (10) | no | limits |

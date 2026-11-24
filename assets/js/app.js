@@ -112,6 +112,8 @@ const toast = (message, kind = "info") => {
 }
 
 window.addEventListener("readout:toast", e => toast(e.detail?.message, e.detail?.kind))
+// From the server (push_event "toast"), e.g. a new notification.
+window.addEventListener("phx:toast", e => toast(e.detail?.message, e.detail?.kind || "info"))
 
 // JS.dispatch("readout:copy", detail: %{text: "..."}) or data-copy on the target.
 window.addEventListener("readout:copy", async e => {
