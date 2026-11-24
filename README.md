@@ -11,6 +11,7 @@ What it does:
 
 - **Documents**: upload PDF, Word (DOCX/ODT) or PowerPoint (PPTX/ODP) by dropping them anywhere;
   Office files are converted to PDF with LibreOffice; pages are rendered and their text indexed.
+  Spreadsheets (XLSX, ODS, CSV) are shown as tables with a chart view.
   New versions keep every link working.
 - **Links**: one link per person or group, with optional expiry, password, email gate (allow and
   block lists), verified email (6-digit code), download and watermark.

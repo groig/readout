@@ -410,7 +410,7 @@ defmodule ReadoutWeb.DocumentLive.Analytics do
     |> assign(:delta_label, delta_label(socket.assigns.params["range"]))
     |> assign(:page_version, page_version)
     |> assign(:pages, pages)
-    |> assign(:page_bars, page_bars(pages))
+    |> assign(:page_bars, page_bars(pages, page_version))
     |> assign(:links, links)
     |> assign(
       :link_items,
@@ -433,14 +433,21 @@ defmodule ReadoutWeb.DocumentLive.Analytics do
   defp page_version(doc, nil), do: doc.current_version
   defp page_version(doc, id), do: Documents.get_version(doc, id) || doc.current_version
 
-  defp page_bars(pages) do
+  # For spreadsheets each "page" is a sheet: label bars with sheet names.
+  defp page_bars(pages, version) do
+    names =
+      case version do
+        %{metadata: %{"sheets" => sheets}} -> Enum.map(sheets, & &1["name"])
+        _ -> []
+      end
+
     for p <- pages do
       %{
         label: Integer.to_string(p.page),
         value: div(p.avg_ms, 100),
         display:
           "#{Format.duration(div(p.avg_ms, 1000))} · #{Format.percent(p.reach)} #{gettext("reached")}",
-        hint: gettext("Page %{number}", number: p.page),
+        hint: Enum.at(names, p.page - 1) || gettext("Page %{number}", number: p.page),
         tone: if(p.reach < 50, do: "muted")
       }
     end
@@ -545,7 +552,7 @@ defmodule ReadoutWeb.DocumentLive.Analytics do
     socket
     |> assign(:overview, Analytics.overview(scope, doc, opts))
     |> assign(:pages, pages)
-    |> assign(:page_bars, page_bars(pages))
+    |> assign(:page_bars, page_bars(pages, socket.assigns.page_version))
     |> assign(:links, links)
     |> assign(
       :link_items,

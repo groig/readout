@@ -12,6 +12,7 @@ defmodule ReadoutWeb.ViewerLive do
   use ReadoutWeb, :live_view
 
   import ReadoutWeb.ViewerComponents
+  import ReadoutWeb.SheetComponents
 
   alias Readout.Documents
   alias Readout.Documents.{Pdf, Version}
@@ -191,7 +192,7 @@ defmodule ReadoutWeb.ViewerLive do
             </span>
             <div class="ml-auto flex items-center gap-1.5">
               <.button
-                :if={@link.allow_download and @visit_token}
+                :if={@link.allow_download && @visit_token && @version.pdf_key}
                 id="download-pdf"
                 size="sm"
                 icon="hero-arrow-down-tray-mini"
@@ -200,7 +201,11 @@ defmodule ReadoutWeb.ViewerLive do
                 {gettext("Download")}
               </.button>
               <.button
-                :if={@link.allow_original_download and @visit_token and Version.office?(@version)}
+                :if={
+                  @visit_token &&
+                    ((@link.allow_original_download and Version.office?(@version)) or
+                       (@link.allow_download and Version.kind(@version) == :sheets))
+                }
                 id="download-original"
                 size="sm"
                 variant="ghost"
@@ -212,22 +217,33 @@ defmodule ReadoutWeb.ViewerLive do
             </div>
           </header>
           <main class="px-3 py-6 sm:px-6">
-            <%= if @visit_token do %>
-              <.viewer
-                id="viewer"
-                pages={@streams.pages}
-                thumbs={@streams.thumbs}
-                page_count={@version.page_count}
-                src={&~p"/v/#{@link.slug}/p/#{@visit_token}/#{&1.number}/#{Pdf.view_width()}"}
-                thumb_src={&~p"/v/#{@link.slug}/p/#{@visit_token}/#{&1.number}/#{Pdf.thumb_width()}"}
-                watermark={@watermark}
-                track
-              />
-            <% else %>
-              <%!-- Dead render: pages load once the live connection starts the visit. --%>
-              <div id="viewer-loading" class="mx-auto max-w-3xl space-y-4">
-                <.skeleton :for={_ <- 1..2} class="aspect-[1/1.414] w-full rounded-md" />
-              </div>
+            <%= cond do %>
+              <% @visit_token && Version.kind(@version) == :sheets -> %>
+                <.sheet_viewer
+                  id="sheets"
+                  sheet={@sheet}
+                  rows={@streams.sheet_rows}
+                  track
+                  watermark={@watermark}
+                />
+              <% @visit_token -> %>
+                <.viewer
+                  id="viewer"
+                  pages={@streams.pages}
+                  thumbs={@streams.thumbs}
+                  page_count={@version.page_count}
+                  src={&~p"/v/#{@link.slug}/p/#{@visit_token}/#{&1.number}/#{Pdf.view_width()}"}
+                  thumb_src={
+                    &~p"/v/#{@link.slug}/p/#{@visit_token}/#{&1.number}/#{Pdf.thumb_width()}"
+                  }
+                  watermark={@watermark}
+                  track
+                />
+              <% true -> %>
+                <%!-- Dead render: pages load once the live connection starts the visit. --%>
+                <div id="viewer-loading" class="mx-auto max-w-3xl space-y-4">
+                  <.skeleton :for={_ <- 1..2} class="aspect-[1/1.414] w-full rounded-md" />
+                </div>
             <% end %>
           </main>
       <% end %>
@@ -420,15 +436,13 @@ defmodule ReadoutWeb.ViewerLive do
           user_agent: socket.assigns.user_agent || nil
         })
 
-      pages = Documents.list_pages(version)
       if is_nil(socket.assigns.tracker), do: Process.send_after(self(), :tick, @tick_ms)
 
       socket
       |> assign(visit: visit, visit_token: ViewerAccess.sign_visit(visit.id))
       |> assign(:tracker, Tracker.new(version.page_count, now()))
       |> track_presence()
-      |> stream(:pages, pages, reset: true)
-      |> stream(:thumbs, pages, reset: true)
+      |> show_content(version)
     else
       socket |> stream(:pages, [], reset: true) |> stream(:thumbs, [], reset: true)
     end
@@ -544,7 +558,33 @@ defmodule ReadoutWeb.ViewerLive do
     end
   end
 
+  # Spreadsheets: switching sheets moves the reader to that "page".
+  def handle_event("sheet:select" = event, params, socket) do
+    socket = ReadoutWeb.SheetView.handle_event(event, params, socket)
+    handle_event("page", %{"page" => socket.assigns.sheet.index}, socket)
+  end
+
+  def handle_event("sheet:" <> _ = event, params, socket),
+    do: {:noreply, ReadoutWeb.SheetView.handle_event(event, params, socket)}
+
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  # Page images (the viewer hook reports pages), or sheets (the server starts
+  # the reader on sheet 1).
+  defp show_content(socket, version) do
+    case Version.kind(version) do
+      :sheets ->
+        socket = ReadoutWeb.SheetView.init(socket, version)
+
+        socket
+        |> assign(:tracker, Tracker.page(socket.assigns.tracker, 1, now()))
+        |> update_presence(%{page: 1})
+
+      :pages ->
+        pages = Documents.list_pages(version)
+        socket |> stream(:pages, pages, reset: true) |> stream(:thumbs, pages, reset: true)
+    end
+  end
 
   @impl true
   def handle_info(:tick, %{assigns: %{tracker: %Tracker{} = tracker}} = socket) do

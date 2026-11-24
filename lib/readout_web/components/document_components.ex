@@ -33,6 +33,19 @@ defmodule ReadoutWeb.DocumentComponents do
     ~H"""
     <div class={["relative overflow-hidden bg-inset", @class]}>
       <%= cond do %>
+        <% @current && @current.status == :ready && Version.kind(@current) == :sheets -> %>
+          <div class="flex h-full w-full flex-col gap-1 p-[10%]" aria-hidden="true">
+            <div class="flex gap-1">
+              <span :for={_ <- 1..4} class="h-2.5 flex-1 rounded-xs bg-accent/30" />
+            </div>
+            <div :for={_ <- 1..6} class="flex gap-1">
+              <span :for={_ <- 1..4} class="h-2 flex-1 rounded-xs bg-active" />
+            </div>
+            <span class="mt-auto inline-flex items-center gap-1 self-start rounded-sm bg-surface px-1.5 py-0.5 text-2xs font-medium text-fg-muted shadow-xs">
+              <.icon name="hero-table-cells-micro" class="size-3" />
+              {ngettext("%{count} sheet", "%{count} sheets", @current.page_count)}
+            </span>
+          </div>
         <% @current && @current.status == :ready -> %>
           <img
             src={page_url(@document, @current, 1, Pdf.thumb_width())}

@@ -19,7 +19,7 @@ defmodule Readout.Documents.ProcessVersion do
   require Logger
 
   alias Readout.{Documents, Repo, Storage}
-  alias Readout.Documents.{Converter, FileType, Pdf, Version}
+  alias Readout.Documents.{Converter, FileType, Pdf, Sheets, Version}
 
   def new_job(%Version{id: id}), do: new(%{version_id: id})
 
@@ -64,25 +64,62 @@ defmodule Readout.Documents.ProcessVersion do
     try do
       input = Path.join(workdir, "original" <> FileType.extension(version.format))
 
-      with :ok <- Storage.fetch_file(version.original_key, input),
-           {:ok, pdf} <- Converter.to_pdf(input, version.format, workdir),
-           {:ok, info} <- Pdf.info(pdf),
-           {:ok, pdf_key} <- store_pdf(version, pdf),
-           :ok <- render_pages(version, pdf, workdir),
-           {:ok, texts} <- Pdf.text(pdf, info.page_count) do
-        pages =
-          info.sizes
-          |> Enum.zip(texts)
-          |> Enum.map(fn {{w, h}, text} -> %{width: w, height: h, text: text} end)
-
-        Documents.complete_version(
-          version,
-          %{pdf_key: pdf_key, page_count: info.page_count, metadata: info.metadata},
-          pages
-        )
+      case Version.kind(version) do
+        :sheets -> process_sheets(version, input, workdir)
+        :pages -> process_pages(version, input, workdir)
       end
     after
       File.rm_rf(workdir)
+    end
+  end
+
+  # Spreadsheets: each sheet is a "page" (text for search, rows as JSON).
+  defp process_sheets(version, input, workdir) do
+    with :ok <- Storage.fetch_file(version.original_key, input),
+         {:ok, sheets} <- Sheets.extract(input, version.format, workdir),
+         :ok <- Sheets.store(version, sheets) do
+      pages = for s <- sheets, do: %{width: 0.0, height: 0.0, text: Sheets.text(s)}
+
+      metadata = %{
+        "kind" => "sheets",
+        "sheets" =>
+          for(
+            s <- sheets,
+            do: %{
+              "name" => s.name,
+              "rows" => length(s.rows),
+              "columns" => length(s.header),
+              "truncated" => s.truncated
+            }
+          )
+      }
+
+      Documents.complete_version(
+        version,
+        %{pdf_key: nil, page_count: length(sheets), metadata: metadata},
+        pages
+      )
+    end
+  end
+
+  # Documents: Office → PDF, page images, page text.
+  defp process_pages(version, input, workdir) do
+    with :ok <- Storage.fetch_file(version.original_key, input),
+         {:ok, pdf} <- Converter.to_pdf(input, version.format, workdir),
+         {:ok, info} <- Pdf.info(pdf),
+         {:ok, pdf_key} <- store_pdf(version, pdf),
+         :ok <- render_pages(version, pdf, workdir),
+         {:ok, texts} <- Pdf.text(pdf, info.page_count) do
+      pages =
+        info.sizes
+        |> Enum.zip(texts)
+        |> Enum.map(fn {{w, h}, text} -> %{width: w, height: h, text: text} end)
+
+      Documents.complete_version(
+        version,
+        %{pdf_key: pdf_key, page_count: info.page_count, metadata: info.metadata},
+        pages
+      )
     end
   end
 

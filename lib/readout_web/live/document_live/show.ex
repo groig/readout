@@ -8,6 +8,7 @@ defmodule ReadoutWeb.DocumentLive.Show do
   import ReadoutWeb.DocumentComponents
   import ReadoutWeb.ViewerComponents
   import ReadoutWeb.DocumentLive.LinkComponents
+  import ReadoutWeb.SheetComponents
 
   alias Readout.{Accounts, Documents, Links, Policy}
   alias Readout.Links.Link
@@ -61,14 +62,18 @@ defmodule ReadoutWeb.DocumentLive.Show do
             <.icon_button icon="hero-ellipsis-horizontal-mini" label={gettext("More actions")} />
           </:trigger>
           <:item
-            :if={@document.current_version}
+            :if={@document.current_version && @document.current_version.pdf_key}
             icon="hero-arrow-down-tray-mini"
             href={download_url(@document, @document.current_version, "pdf")}
           >
             {gettext("Download PDF")}
           </:item>
           <:item
-            :if={@document.current_version && Version.office?(@document.current_version)}
+            :if={
+              @document.current_version &&
+                (Version.office?(@document.current_version) or
+                   Version.kind(@document.current_version) == :sheets)
+            }
             icon="hero-document-arrow-down-mini"
             href={download_url(@document, @document.current_version, "original")}
           >
@@ -137,7 +142,7 @@ defmodule ReadoutWeb.DocumentLive.Show do
             {User.display_name(@document.owner)}
           </span>
           <span :if={@document.current_version} class="tabular-nums">
-            {ngettext("%{count} page", "%{count} pages", @document.current_version.page_count)}
+            {DocumentLabels.size_label(@document.current_version)}
           </span>
           <span>
             {gettext("Updated")} <.relative_time at={@document.updated_at} scope={@current_scope} />
@@ -217,6 +222,8 @@ defmodule ReadoutWeb.DocumentLive.Show do
           />
         <% true -> %>
           <%= cond do %>
+            <% @document.current_version && Version.kind(@document.current_version) == :sheets -> %>
+              <.sheet_viewer id="sheets" sheet={@sheet} rows={@streams.sheet_rows} />
             <% @document.current_version -> %>
               <.viewer
                 id="viewer"
@@ -562,6 +569,14 @@ defmodule ReadoutWeb.DocumentLive.Show do
        do: socket
 
   defp load_pages(%{assigns: %{document: %{current_version: version}}} = socket) do
+    if Version.kind(version) == :sheets do
+      socket |> assign(:loaded_version_id, version.id) |> ReadoutWeb.SheetView.init(version)
+    else
+      load_page_images(socket, version)
+    end
+  end
+
+  defp load_page_images(socket, version) do
     pages = Documents.list_pages(version)
 
     socket
@@ -599,6 +614,9 @@ defmodule ReadoutWeb.DocumentLive.Show do
   end
 
   @impl true
+  def handle_event("sheet:" <> _ = event, params, socket),
+    do: {:noreply, ReadoutWeb.SheetView.handle_event(event, params, socket)}
+
   def handle_event("new_link", _params, socket) do
     {:noreply, if(socket.assigns.can_edit, do: open_link(socket, %Link{}), else: socket)}
   end

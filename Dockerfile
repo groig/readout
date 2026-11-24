@@ -77,15 +77,15 @@ RUN mix release
 FROM ${RUNNER_IMAGE} AS final
 
 # Runtime: the Erlang release needs the first line. Readout adds poppler
-# (pdfinfo, pdftoppm, pdftotext), cwebp, headless LibreOffice (Writer and
-# Impress, no GUI) and the fonts documents commonly use, so converted Word and
+# (pdfinfo, pdftoppm, pdftotext), cwebp, headless LibreOffice (Writer,
+# Impress and Calc, no GUI) and the fonts documents commonly use, so converted Word and
 # PowerPoint files look right: Carlito and Caladea stand in for Calibri and
 # Cambria; Liberation for Arial, Times and Courier; DejaVu and Noto cover the rest.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     libstdc++6 openssl libncurses6 locales ca-certificates tini curl \
     poppler-utils webp \
-    libreoffice-writer-nogui libreoffice-impress-nogui \
+    libreoffice-writer-nogui libreoffice-impress-nogui libreoffice-calc-nogui \
     fonts-crosextra-carlito fonts-crosextra-caladea \
     fonts-liberation fonts-liberation2 fonts-dejavu-core fonts-noto-core \
   && rm -rf /var/lib/apt/lists/* \

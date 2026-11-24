@@ -132,7 +132,7 @@ defmodule ReadoutWeb.UploadComponent do
           </div>
           <p class="text-lg font-semibold text-fg">{gettext("Drop to upload")}</p>
           <p class="mt-1 text-sm text-fg-muted">
-            {gettext("PDF, Word, PowerPoint, ODT or ODP, up to %{size}.",
+            {gettext("PDF, Word, PowerPoint, Excel or CSV, up to %{size}.",
               size: DocumentLabels.size(Documents.max_upload_bytes())
             )}
           </p>

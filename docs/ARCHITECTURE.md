@@ -140,6 +140,19 @@ viewers (grouped by email, or anonymous by IP), recent visits, a visit's page-by
 and the workspace overview. All require `:view_document`; the workspace views only include
 documents the person can see.
 
+## Spreadsheets (CSV, XLSX, ODS)
+
+A version's `kind` is `:pages` (documents) or `:sheets` (`xlsx`, `ods`, `csv`). For sheets,
+`ProcessVersion` skips PDF and images: XLSX/ODS are exported to one CSV per sheet with LibreOffice
+Calc (formula results, workbook order from its output); CSV is read directly
+(`Documents.Sheets`: an RFC 4180 parser, delimiter sniffed from `, ; tab`, Latin-1 fallback).
+Each sheet is stored as JSON (`sheets/<n>.json`: header, rows, numeric columns detected from
+values like `1.234,5`, `12%`, `(45)`), capped at 20,000 rows × 200 columns. Each sheet is a
+"page": its text is indexed for search, and reading time is tracked per sheet (the server sets
+the page when the reader switches tabs). `ReadoutWeb.SheetView` holds the viewer state (sheet,
+row page, table or chart) for both the document page and the public viewer. CSV files are
+recognised by name (`.csv`) plus a text check, since they have no signature.
+
 ## Data rooms
 
 - **rooms** (name, description, `workspace|restricted` visibility, owner, soft delete) and

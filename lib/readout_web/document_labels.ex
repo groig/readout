@@ -19,21 +19,33 @@ defmodule ReadoutWeb.DocumentLabels do
   def upload_error(:empty), do: gettext("The file is empty.")
 
   def upload_error(:unsupported),
-    do: gettext("Only PDF, Word, PowerPoint, ODT and ODP files are supported.")
+    do: gettext("Only PDF, Word, PowerPoint, Excel, OpenDocument and CSV files are supported.")
 
   def upload_error(:too_many_files), do: gettext("Too many files at once.")
 
   def upload_error(:not_accepted),
-    do: gettext("Only PDF, Word, PowerPoint, ODT and ODP files are supported.")
+    do: gettext("Only PDF, Word, PowerPoint, Excel, OpenDocument and CSV files are supported.")
 
   def upload_error(:unauthorized), do: gettext("You can't upload documents.")
   def upload_error(_), do: gettext("The file couldn't be uploaded.")
+
+  @doc "\"12 pages\", or \"3 sheets\" for spreadsheets."
+  def size_label(%Readout.Documents.Version{page_count: n} = version) when is_integer(n) do
+    if Readout.Documents.Version.kind(version) == :sheets,
+      do: ngettext("%{count} sheet", "%{count} sheets", n),
+      else: ngettext("%{count} page", "%{count} pages", n)
+  end
+
+  def size_label(_), do: "–"
 
   def format_label(:pdf), do: "PDF"
   def format_label(:docx), do: "Word"
   def format_label(:pptx), do: "PowerPoint"
   def format_label(:odt), do: "ODT"
   def format_label(:odp), do: "ODP"
+  def format_label(:xlsx), do: "Excel"
+  def format_label(:ods), do: "ODS"
+  def format_label(:csv), do: "CSV"
 
   def status_label(:pending), do: gettext("Queued")
   def status_label(:processing), do: gettext("Processing")

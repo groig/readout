@@ -91,7 +91,7 @@ defmodule ReadoutWeb.DocumentLive.Index do
               title={gettext("No documents yet")}
             >
               {gettext(
-                "Upload a PDF, Word or PowerPoint file to start sharing it. You can also drop files anywhere."
+                "Upload a PDF, Word, PowerPoint or Excel file to start sharing it. You can also drop files anywhere."
               )}
               <:actions :if={@can_upload}>
                 <.button
@@ -457,8 +457,8 @@ defmodule ReadoutWeb.DocumentLive.Index do
     end
   end
 
-  defp pages(%{current_version: %{page_count: n}}) when is_integer(n),
-    do: ngettext("%{count} page", "%{count} pages", n)
+  defp pages(%{current_version: %{page_count: n} = version}) when is_integer(n),
+    do: ReadoutWeb.DocumentLabels.size_label(version)
 
   defp pages(_), do: "–"
 end

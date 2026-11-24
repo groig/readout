@@ -8,7 +8,8 @@ defmodule Readout.Documents.Version do
   """
   use Ecto.Schema
 
-  @formats [:pdf, :docx, :pptx, :odt, :odp]
+  @formats [:pdf, :docx, :pptx, :odt, :odp, :xlsx, :ods, :csv]
+  @sheet_formats [:xlsx, :ods, :csv]
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -35,8 +36,16 @@ defmodule Readout.Documents.Version do
 
   def formats, do: @formats
 
-  @doc "Whether the original is an Office file (converted to PDF)."
-  def office?(%__MODULE__{format: format}), do: format != :pdf
+  @doc "Whether the original is an Office document converted to PDF."
+  def office?(%__MODULE__{format: format}), do: format not in [:pdf | @sheet_formats]
+
+  @doc "`:pages` (rendered pages) or `:sheets` (tables)."
+  def kind(%__MODULE__{format: format}),
+    do: if(format in @sheet_formats, do: :sheets, else: :pages)
+
+  def kind(nil), do: :pages
+
+  def sheet_formats, do: @sheet_formats
 
   @doc "Storage prefix for everything belonging to this version."
   def prefix(%__MODULE__{document_id: doc_id, number: n}), do: "documents/#{doc_id}/v#{n}"

@@ -187,7 +187,7 @@ defmodule Readout.Documents do
   """
   def create_document(%Scope{user: user} = scope, %{path: path, filename: filename}) do
     with :ok <- Policy.authorize(scope, :upload_document, :workspace),
-         {:ok, file} <- inspect_upload(path) do
+         {:ok, file} <- inspect_upload(path, filename) do
       Repo.transact(fn ->
         document =
           Repo.insert!(%Document{
@@ -216,7 +216,7 @@ defmodule Readout.Documents do
         filename: filename
       }) do
     with :ok <- Policy.authorize(scope, :edit_document, document),
-         {:ok, file} <- inspect_upload(path) do
+         {:ok, file} <- inspect_upload(path, filename) do
       Repo.transact(fn ->
         # Lock the document so concurrent uploads get distinct numbers.
         Repo.one!(from d in Document, where: d.id == ^document.id, lock: "FOR UPDATE")
@@ -241,10 +241,10 @@ defmodule Readout.Documents do
     end
   end
 
-  defp inspect_upload(path) do
+  defp inspect_upload(path, filename) do
     with {:ok, %File.Stat{size: size}} <- File.stat(path),
          :ok <- check_size(size),
-         {:ok, format} <- FileType.detect(path) do
+         {:ok, format} <- FileType.detect(path, filename) do
       {:ok, %{path: path, size: size, format: format, checksum: checksum(path)}}
     else
       {:error, :too_large} -> {:error, :too_large}

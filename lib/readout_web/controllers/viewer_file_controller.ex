@@ -68,8 +68,10 @@ defmodule ReadoutWeb.ViewerFileController do
   defp file_for(_link, %Version{pdf_key: key}, "pdf") when is_binary(key),
     do: {:ok, key, ".pdf", "application/pdf"}
 
-  defp file_for(%{allow_original_download: true}, %Version{format: format} = v, "original")
-       when format != :pdf do
+  # Originals: Office files when the link allows it; spreadsheets whenever
+  # downloads are allowed (they have no PDF).
+  defp file_for(link, %Version{format: format} = v, "original")
+       when format != :pdf and (link.allow_original_download or format in [:xlsx, :ods, :csv]) do
     ext = FileType.extension(format)
     {:ok, v.original_key, ext, MIME.from_path("x" <> ext)}
   end

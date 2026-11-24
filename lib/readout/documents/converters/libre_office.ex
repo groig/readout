@@ -45,7 +45,9 @@ defmodule Readout.Documents.Converters.LibreOffice do
     end
   end
 
-  defp write_profile!(profile) do
+  @doc false
+  # A throwaway user profile: macros off, untrusted links blocked.
+  def write_profile!(profile) do
     user = Path.join(profile, "user")
     File.mkdir_p!(user)
 
