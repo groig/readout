@@ -88,6 +88,16 @@ defmodule ReadoutWeb.DocumentLive.LinkComponents do
             <.icon name="hero-finger-print-mini" class="size-4" />
           </.tooltip>
           <.tooltip
+            :if={link.max_viewers}
+            text={
+              if Link.one_time?(link),
+                do: gettext("One-time link"),
+                else: gettext("Up to %{n} people", n: link.max_viewers)
+            }
+          >
+            <.icon name="hero-user-minus-mini" class="size-4" />
+          </.tooltip>
+          <.tooltip
             :if={link.expires_at}
             text={gettext("Expires %{date}", date: Format.date(link.expires_at, @scope))}
           >
@@ -96,7 +106,7 @@ defmodule ReadoutWeb.DocumentLive.LinkComponents do
           <span
             :if={
               !Link.password?(link) and !link.require_email and !link.allow_download and
-                !link.watermark and !link.expires_at
+                !link.watermark and !link.expires_at and !link.max_viewers
             }
             class="text-xs"
           >
@@ -183,6 +193,24 @@ defmodule ReadoutWeb.DocumentLive.LinkComponents do
             hint={gettext("Optional. The link stops working at the end of that day.")}
             errors={translate_errors(@form.errors, :expires_at)}
           />
+          <.input
+            field={@form[:one_time]}
+            type="switch"
+            label={gettext("One-time link")}
+            hint={gettext("Only the first person to open it can read it (on their device).")}
+          />
+          <.input
+            :if={!field_on?(@form, :one_time)}
+            field={@form[:max_viewers]}
+            type="number"
+            min="2"
+            label={gettext("Limit to this many people")}
+            hint={
+              gettext(
+                "Optional. Others see that the link has been used. People are counted by device."
+              )
+            }
+          />
           <div class="space-y-1.5">
             <%= if Link.password?(@link) and !Phoenix.HTML.Form.normalize_value("checkbox", @form[:remove_password].value) do %>
               <div class="flex items-center justify-between rounded-md border border-border bg-inset px-3 py-2 text-sm">
@@ -254,6 +282,20 @@ defmodule ReadoutWeb.DocumentLive.LinkComponents do
               rows="3"
             />
           </div>
+        </section>
+
+        <section class="space-y-4">
+          <h3 class="text-xs font-medium text-fg-subtle">{gettext("Notifications")}</h3>
+          <.input
+            field={@form[:notify_first_only]}
+            type="switch"
+            label={gettext("Only a viewer's first visit")}
+            hint={
+              gettext(
+                "Followers hear when someone opens this link the first time, not each time they come back."
+              )
+            }
+          />
         </section>
 
         <section class="space-y-4">

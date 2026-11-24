@@ -14,6 +14,8 @@ defmodule Readout.Notifications.DeliverJob do
     with %Visit{} = visit <-
            Repo.get(Visit, id) |> Repo.preload([:link, :page_views, document: :members]),
          nil <- visit.document.deleted_at,
+         # Links can ask to hear only about a viewer's first visit.
+         true <- not visit.link.notify_first_only or Readout.Links.first_visit?(visit),
          %{} = data <- snapshot(kind, visit) do
       for user <- Notifications.followers(visit.document) do
         Notifications.create(user, visit.document, visit.id, kind, data)

@@ -155,6 +155,59 @@ defmodule Readout.Links do
   defp put_room_documents(link), do: link
 
   @doc """
+  Whether a viewer may open a link with a viewer limit: always if they opened
+  it before (same device, or same email), otherwise while fewer than
+  `max_viewers` people have. People are counted by device (then email, then
+  IP), so refreshing never uses up the limit.
+  """
+  def admits?(%Link{max_viewers: nil}, _viewer), do: true
+
+  def admits?(%Link{max_viewers: max} = link, viewer) do
+    known? =
+      case same_viewer(viewer[:device_id], viewer[:email]) do
+        nil -> false
+        cond -> Repo.exists?(from v in Visit, where: v.link_id == ^link.id, where: ^cond)
+      end
+
+    known? or viewer_count(link) < max
+  end
+
+  # Visits by the same device or the same email (nil when neither is known).
+  defp same_viewer(device, email) do
+    [device && dynamic([v], v.device_id == ^device), email && dynamic([v], v.email == ^email)]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.reduce(nil, fn
+      d, nil -> d
+      d, acc -> dynamic([v], ^acc or ^d)
+    end)
+  end
+
+  @doc "How many people (devices) have opened a link."
+  def viewer_count(%Link{id: id}) do
+    from(v in Visit,
+      where: v.link_id == ^id,
+      select: count(fragment("DISTINCT coalesce(?, ?::text, ?)", v.device_id, v.email, v.ip))
+    )
+    |> Repo.one()
+  end
+
+  @doc "Whether a visit is the viewer's first through its link."
+  def first_visit?(%Visit{} = visit) do
+    case same_viewer(visit.device_id, visit.email) do
+      nil ->
+        true
+
+      cond ->
+        not Repo.exists?(
+          from v in Visit,
+            where: v.link_id == ^visit.link_id and v.id != ^visit.id,
+            where: v.started_at < ^visit.started_at,
+            where: ^cond
+        )
+    end
+  end
+
+  @doc """
   Checks the gate's form: password (if any) and email (if required, against
   the allow and deny lists). Rate-limited per link and client.
   """

@@ -28,12 +28,15 @@ defmodule Readout.Links.Link do
     field :allow_download, :boolean, default: false
     field :allow_original_download, :boolean, default: false
     field :watermark, :boolean, default: false
+    field :max_viewers, :integer
+    field :notify_first_only, :boolean, default: false
 
     # Form-only fields.
     field :password, :string, virtual: true, redact: true
     field :remove_password, :boolean, virtual: true, default: false
     field :allow_list_text, :string, virtual: true
     field :deny_list_text, :string, virtual: true
+    field :one_time, :boolean, virtual: true
 
     # Filled by queries.
     field :visit_count, :integer, virtual: true, default: 0
@@ -46,19 +49,31 @@ defmodule Readout.Links.Link do
   end
 
   @fields ~w(name enabled expires_at password remove_password require_email require_verification
-             allow_list_text deny_list_text allow_download allow_original_download watermark)a
+             allow_list_text deny_list_text allow_download allow_original_download watermark
+             max_viewers one_time notify_first_only)a
 
   @doc """
   The link settings form. Options: `:mail_enabled` (email verification needs
   SMTP).
   """
   def changeset(link, attrs, opts \\ []) do
+    # The form-only one-time switch starts from the link's actual state.
+    link = if is_nil(link.one_time), do: %{link | one_time: one_time?(link)}, else: link
+
+    # Text fields keep "" (to clear them); a blank limit means no limit.
+    attrs =
+      case attrs do
+        %{"max_viewers" => blank} when blank in ["", nil] -> Map.put(attrs, "max_viewers", nil)
+        _ -> attrs
+      end
+
     link
     |> cast(attrs, @fields, empty_values: [])
     |> update_change(:name, &String.trim/1)
     |> validate_required([:name])
     |> validate_length(:name, max: 80)
     |> validate_expiry()
+    |> put_viewer_limit()
     |> put_lists()
     |> put_password()
     |> validate_verification(Keyword.get(opts, :mail_enabled, false))
@@ -72,6 +87,29 @@ defmodule Readout.Links.Link do
         else: []
     end)
   end
+
+  # "One-time link" is a shortcut for a limit of one person.
+  defp put_viewer_limit(changeset) do
+    changeset =
+      case fetch_change(changeset, :one_time) do
+        {:ok, true} ->
+          put_change(changeset, :max_viewers, 1)
+
+        {:ok, false} ->
+          if get_field(changeset, :max_viewers) == 1,
+            do: put_change(changeset, :max_viewers, nil),
+            else: changeset
+
+        :error ->
+          changeset
+      end
+
+    validate_number(changeset, :max_viewers, greater_than: 0, less_than: 100_000)
+  end
+
+  @doc "Whether the link only lets its first viewer in."
+  def one_time?(%__MODULE__{max_viewers: 1}), do: true
+  def one_time?(_), do: false
 
   defp put_lists(changeset) do
     Enum.reduce([allow_list_text: :allow_list, deny_list_text: :deny_list], changeset, fn

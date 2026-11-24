@@ -157,6 +157,18 @@ the page when the reader switches tabs). `ReadoutWeb.SheetView` holds the viewer
 row page, table or chart) for both the document page and the public viewer. CSV files are
 recognised by name (`.csv`) plus a text check, since they have no signature.
 
+## Link limits
+
+`links.max_viewers` caps how many people may open a link (the "one-time link" switch is a limit of
+one). People are counted like unique viewers: by device id, then email, then IP. `Links.admits?/2`
+lets in anyone who already has a visit on the link (same device or same email), otherwise only
+while the count is below the limit. The viewer checks it at mount, or after the gate for links
+that ask for an email (so a known reader on a new device gets back in). Two strangers arriving at
+the same instant can exceed the limit by one; it's a courtesy limit, not a lock.
+
+`links.notify_first_only` makes `Notifications.DeliverJob` skip visits that aren't the viewer's
+first through that link (`Links.first_visit?/1`).
+
 ## Data rooms
 
 - **rooms** (name, description, `workspace|restricted` visibility, owner, soft delete) and

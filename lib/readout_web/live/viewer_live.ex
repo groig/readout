@@ -330,18 +330,27 @@ defmodule ReadoutWeb.ViewerLive do
       |> assign(:client_ip, connected?(socket) && ClientIP.from_socket(socket))
       |> assign(:user_agent, connected?(socket) && get_connect_info(socket, :user_agent))
 
-    case Links.fetch_public_link(slug) do
-      {:ok, link} ->
-        {:ok,
-         socket
-         |> assign(:link, link)
-         |> assign(:page_title, Link.title(link))
-         |> assign(:known_email, known_email(session, link))
-         |> assign(:device_id, session["device:" <> link.slug])
-         |> enter(ViewerAccess.grant(session, link))}
-
-      {:error, reason} ->
-        {:ok, assign(socket, state: :unavailable, reason: reason)}
+    with {:ok, link} <- Links.fetch_public_link(slug),
+         grant = ViewerAccess.grant(session, link),
+         device_id = session["device:" <> link.slug],
+         known = known_email(session, link),
+         # A one-time or limited link that this device hasn't opened yet. With
+         # an email gate and no email yet, the gate decides (a known reader may
+         # be on a new device).
+         email = (grant && grant["email"]) || known,
+         true <-
+           (link.require_email and is_nil(email)) ||
+             Links.admits?(link, %{device_id: device_id, email: email}) ||
+             {:error, :used_up} do
+      {:ok,
+       socket
+       |> assign(:link, link)
+       |> assign(:page_title, Link.title(link))
+       |> assign(:known_email, known)
+       |> assign(:device_id, device_id)
+       |> enter(grant)}
+    else
+      {:error, reason} -> {:ok, assign(socket, state: :unavailable, reason: reason)}
     end
   end
 
@@ -470,6 +479,9 @@ defmodule ReadoutWeb.ViewerLive do
     case Links.check_gate(link, params, socket.assigns.client_key) do
       {:ok, email} ->
         cond do
+          not Links.admits?(link, %{device_id: socket.assigns.device_id, email: email}) ->
+            {:noreply, assign(socket, :gate_error, gate_error(:used_up))}
+
           not link.require_verification ->
             {:noreply, grant(socket, email, false)}
 
@@ -734,11 +746,16 @@ defmodule ReadoutWeb.ViewerLive do
   defp gate_error(:expired), do: gettext("That code has expired. Send a new one.")
   defp gate_error(:too_many_attempts), do: gettext("Too many wrong codes. Send a new one.")
 
+  defp gate_error(:used_up),
+    do: gettext("This link has already been opened by the people it was meant for.")
+
   defp unavailable_icon(:expired), do: "hero-clock"
+  defp unavailable_icon(:used_up), do: "hero-lock-closed"
   defp unavailable_icon(:not_ready), do: "hero-arrow-path"
   defp unavailable_icon(_), do: "hero-link-slash"
 
   defp unavailable_title(:expired), do: gettext("This link has expired")
+  defp unavailable_title(:used_up), do: gettext("This link has already been used")
   defp unavailable_title(:not_ready), do: gettext("This document is almost ready")
   defp unavailable_title(_), do: gettext("This link isn't available")
 
