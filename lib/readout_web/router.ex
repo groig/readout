@@ -41,6 +41,8 @@ defmodule ReadoutWeb.Router do
         ReadoutWeb.Shell
       ] do
       live "/documents", DocumentLive.Index, :index
+      live "/documents/:id", DocumentLive.Show, :show
+      live "/documents/:id/versions", DocumentLive.Show, :versions
       live "/analytics", AnalyticsLive, :index
 
       live "/settings/profile", SettingsLive.Profile, :edit
@@ -52,6 +54,9 @@ defmodule ReadoutWeb.Router do
     end
 
     get "/settings", PageController, :settings
+
+    get "/documents/:id/v/:version_id/pages/:number/:width", DocumentFileController, :page
+    get "/documents/:id/v/:version_id/download/:kind", DocumentFileController, :download
     post "/users/update-password", UserSessionController, :update_password
   end
 

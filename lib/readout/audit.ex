@@ -20,6 +20,7 @@ defmodule Readout.Audit do
     workspace.created workspace.updated workspace.ownership_transferred
     invitation.created invitation.resent invitation.revoked invitation.accepted
     user.role_changed user.deactivated user.reactivated
+    document.deleted document.downloaded
   )
 
   def actions, do: @actions

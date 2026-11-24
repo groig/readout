@@ -45,3 +45,10 @@ config :phoenix,
 
 # Keep /dev routes (style guide, mailbox) in tests so they stay covered.
 config :readout, dev_routes: true
+
+# Jobs run only when a test asks for them (Oban.Testing).
+config :readout, Oban, testing: :manual
+
+config :readout, Readout.Storage,
+  root:
+    Path.join(System.tmp_dir!(), "readout-test-storage-#{System.get_env("MIX_TEST_PARTITION")}")

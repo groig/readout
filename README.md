@@ -7,14 +7,15 @@ which pages they read and for how long, live.
 It is free software, runs as one Docker Compose stack behind Caddy, and keeps every file and every
 analytics event on our own server. Nothing is sent to third parties.
 
-> Status: milestone 1 (foundation) is done: design system, app shell, accounts, roles,
-> invitations, members, audit log, profile, English and Spanish. Documents, links, the public
-> viewer, analytics and deployment follow. See `docs/ARCHITECTURE.md`.
+> Status: milestones 1 (foundation) and 2 (documents: upload, Office→PDF conversion, processing
+> jobs, list/grid, internal viewer, versions, access) are done. Links, the public viewer,
+> analytics and deployment follow. See `docs/ARCHITECTURE.md`.
 
 ## Run it locally
 
-Requirements: Elixir 1.17+ / OTP 27+, PostgreSQL, and (from milestone 2) `poppler-utils` and
-LibreOffice.
+Requirements: Elixir 1.17+ / OTP 27+, PostgreSQL, LibreOffice (`soffice`), poppler
+(`pdfinfo`, `pdftoppm`, `pdftotext`) and `cwebp` (Arch: `libwebp-utils`, Debian: `webp`).
+Tests that need these tools are tagged `:tools` and skipped with a note if one is missing.
 
 ```sh
 mix setup                      # deps, database, assets
@@ -37,6 +38,7 @@ Useful dev pages (all under `/dev`, which production keeps tailnet-only):
 - Read `AGENTS.md` first: Phoenix, LiveView and HEEx rules, plus this project's own rules.
 - `mix precommit` compiles with warnings as errors, formats and runs the tests. Run it before
   every commit.
+- Uploaded files go to `tmp/storage` in development (`STORAGE_PATH` in production).
 - UI strings go through Gettext. After changing them, run `mix gettext.extract --merge`, then
   translate the new entries in `priv/gettext/es/LC_MESSAGES/*.po`.
 

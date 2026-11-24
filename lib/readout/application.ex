@@ -12,6 +12,7 @@ defmodule Readout.Application do
       Readout.Repo,
       {DNSCluster, query: Application.get_env(:readout, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Readout.PubSub},
+      {Oban, Application.fetch_env!(:readout, Oban)},
       # Start a worker by calling: Readout.Worker.start_link(arg)
       # {Readout.Worker, arg},
       # Start to serve requests, typically the last entry

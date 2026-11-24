@@ -40,6 +40,29 @@ config :phoenix_live_view,
   # the attribute set on all root tags. Used for Phoenix.LiveView.ColocatedCSS.
   root_tag_attribute: "phx-r"
 
+# Background jobs (Postgres-backed). Documents are processed one or two at a
+# time: LibreOffice and rasterizing are CPU-heavy.
+config :readout, Oban,
+  engine: Oban.Engines.Basic,
+  repo: Readout.Repo,
+  queues: [documents: 2, mailers: 5, default: 5],
+  plugins: [
+    {Oban.Plugins.Pruner, max_age: 7 * 24 * 60 * 60},
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)}
+  ]
+
+# Files live on local disk under STORAGE_PATH (see runtime.exs), behind the
+# Readout.Storage behaviour so S3-compatible storage can be added later.
+config :readout, Readout.Storage,
+  adapter: Readout.Storage.Local,
+  root: Path.expand("../tmp/storage", __DIR__)
+
+config :readout, Readout.Documents,
+  # Uploads larger than this are rejected (MAX_UPLOAD_MB in production).
+  max_upload_bytes: 100 * 1024 * 1024,
+  # Seconds before an external tool (LibreOffice, pdftoppm...) is killed.
+  tool_timeout: 180
+
 # Configure the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

@@ -10,7 +10,8 @@ defmodule ReadoutWeb.AuditLabels do
     [
       {gettext("Invitations"), "invitation."},
       {gettext("Members"), "user."},
-      {gettext("Workspace"), "workspace."}
+      {gettext("Workspace"), "workspace."},
+      {gettext("Documents"), "document."}
     ]
   end
 
@@ -62,6 +63,12 @@ defmodule ReadoutWeb.AuditLabels do
 
       "user.reactivated" ->
         gettext("%{actor} reactivated %{subject}", actor: actor, subject: subject)
+
+      "document.deleted" ->
+        gettext("%{actor} deleted «%{subject}»", actor: actor, subject: subject)
+
+      "document.downloaded" ->
+        gettext("%{actor} downloaded «%{subject}»", actor: actor, subject: subject)
 
       other ->
         "#{actor} · #{other}"

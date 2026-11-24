@@ -19,9 +19,23 @@ defmodule Readout.Policy do
 
   Workspace-wide actions take `:workspace` as the resource. Actions on a
   person take the target `%User{}`. Role assignment takes the role atom.
+  Document actions take a `%Document{}` with `members` preloaded.
+
+  ## Documents
+
+    * `:view_document` - see it and its analytics: admins and owners always;
+      anyone for workspace documents; for restricted ones, its owner and the
+      people added to it.
+    * `:edit_document` - rename, upload versions, manage links: admins and
+      owners, the document's owner, and people added as editors.
+    * `:manage_document` - change visibility and people, delete: admins and
+      owners, and the document's owner.
+
+  Observers never change anything, whatever else applies.
   """
 
   alias Readout.Accounts.{Scope, User}
+  alias Readout.Documents.{Document, Member}
 
   @type action :: atom()
   @type resource :: term()
@@ -66,6 +80,30 @@ defmodule Readout.Policy do
   defp allowed?(%User{role: :admin}, :assign_role, role) when is_atom(role),
     do: role in [:admin, :member, :observer]
 
+  ## Documents
+
+  defp allowed?(%User{role: role}, :view_document, %Document{}) when role in [:owner, :admin],
+    do: true
+
+  defp allowed?(%User{} = user, :view_document, %Document{} = doc) do
+    doc.visibility == :workspace or doc.owner_id == user.id or member_role(doc, user) != nil
+  end
+
+  defp allowed?(%User{role: :observer}, action, %Document{})
+       when action in [:edit_document, :manage_document],
+       do: false
+
+  defp allowed?(%User{role: role}, action, %Document{})
+       when role in [:owner, :admin] and action in [:edit_document, :manage_document],
+       do: true
+
+  defp allowed?(%User{id: id}, action, %Document{owner_id: id})
+       when action in [:edit_document, :manage_document],
+       do: true
+
+  defp allowed?(%User{} = user, :edit_document, %Document{} = doc),
+    do: member_role(doc, user) == :editor
+
   ## Acting on another person
 
   # Nobody changes their own role or deactivates themselves; owners step down
@@ -84,4 +122,15 @@ defmodule Readout.Policy do
        do: target_role in [:member, :observer]
 
   defp allowed?(_user, _action, _resource), do: false
+
+  defp member_role(%Document{members: members}, %User{id: user_id}) when is_list(members) do
+    Enum.find_value(members, fn
+      %Member{user_id: ^user_id, role: role} -> role
+      _ -> nil
+    end)
+  end
+
+  defp member_role(%Document{members: %Ecto.Association.NotLoaded{}}, _user) do
+    raise ArgumentError, "Readout.Policy needs document members preloaded"
+  end
 end

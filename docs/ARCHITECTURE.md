@@ -17,6 +17,8 @@ Swoosh with SMTP sends email. There are no JavaScript dependencies beyond what P
 | `Readout.Audit` | Append-only audit log, with live updates over PubSub. |
 | `Readout.Workspace` | The single-row workspace settings (name, notification language). |
 | `Readout.TimeZones` | IANA zones (the `tz` package) for pickers and conversion. |
+| `Readout.Documents` | Documents, versions, pages, document members; upload, processing hooks, search. |
+| `Readout.Storage` | Behaviour for file storage; `Storage.Local` writes under `STORAGE_PATH`. |
 
 The web layer (`ReadoutWeb`) contains LiveViews, the shell, the components and locale resolution.
 
@@ -35,6 +37,51 @@ The web layer (`ReadoutWeb`) contains LiveViews, the shell, the components and l
   metadata map, and a microsecond timestamp. It is append-only.
 - **workspace_settings**: a single row (`id = 1`, enforced by a check constraint).
 
+## Data model (milestone 2)
+
+- **documents**: title, `visibility` (`workspace|restricted`), `owner_id`, `current_version_id`
+  (the newest *ready* version — links keep working while a new version processes or if it fails),
+  `deleted_at` (soft delete: files are removed, history stays).
+- **document_versions**: `number` (1, 2, …), `status` (`pending|processing|ready|failed`), `error`
+  (a stable code, translated in the UI), `format` (`pdf|docx|pptx|odt|odp`), original file name,
+  size, SHA-256, `original_key`, `pdf_key` (the original itself for PDFs), page count, PDF metadata.
+- **document_pages**: per version and page: size in PDF points (so viewers reserve space before
+  images load), extracted text, and a generated `tsvector` (`simple` config, works for English and
+  Spanish) with a GIN index for full-text search.
+- **document_members**: people added to a document as `editor` or `viewer`.
+- **oban_jobs**: Oban's queue table.
+
+Storage keys: `documents/<id>/v<n>/original.<ext>`, `…/document.pdf`, `…/pages/<n>-<width>.webp`.
+
+## Document processing
+
+Upload (LiveView live upload, auto-upload, any page via the shell's drop overlay) →
+`Documents.create_document/2` detects the format **by magic bytes** (`FileType`: `%PDF-`; ZIP with
+`word/document.xml` / `ppt/presentation.xml`; ODF `mimetype`), enforces the size limit, stores
+the original and inserts an Oban job **in the same transaction**.
+
+`ProcessVersion` (queue `documents`, concurrency 2, 3 attempts) in a throwaway temp dir:
+
+1. `Converter.to_pdf/3`: PDFs pass through; Office files go to `Converters.LibreOffice`
+   (`soffice --headless --convert-to pdf` with a fresh profile per job, macros disabled, untrusted
+   links blocked). New formats (spreadsheets) are new converter modules.
+2. `pdfinfo`: page count, per-page sizes, metadata.
+3. `pdftoppm` → PNG → `cwebp`: every page at 480 px (thumbnails) and 1600 px (viewing).
+4. `pdftotext -layout`: per-page text (split on form feeds), NUL bytes stripped.
+5. Pages are written, the version is marked ready, and becomes current if newer.
+
+Every tool runs through `Documents.Tools.run/3`: coreutils `timeout` (default 180 s, then
+SIGKILL) and, when the kernel allows unprivileged user namespaces, `unshare --net` so converters
+have **no network**. Permanent errors (bad file, password-protected PDF) fail immediately; others
+retry. Status changes are broadcast; the UI updates live.
+
+## Live updates
+
+The shell (`ReadoutWeb.Shell`) subscribes every signed-in page to the `documents` topic and
+forwards events (`{:document_created | :document_updated | :document_deleted, id}`) to the upload
+tray and to the page's optional `handle_document_event/3`. Messages carry only ids; pages re-read
+through their own scope, so a broadcast never leaks a document someone can't see.
+
 ## Authorization
 
 `Readout.Accounts.Scope` holds the signed-in user plus the resolved locale and time zone. Every
@@ -46,8 +93,11 @@ the tests check by sending events the UI never offers. Pages gated by role use
 Role rules: owners can do everything. Admins invite and assign roles up to admin, and manage
 members and observers. Only owners change or deactivate admins and owners. Nobody acts on
 themselves; an owner steps down by transferring ownership, so the workspace always keeps at least
-one owner. Documents (milestone 2) will add `:workspace`/`:restricted` visibility and per-document
-editors and viewers to the same module. `test/readout/policy_test.exs` is the role × action
+one owner. Documents: `:view_document` (admins/owners always; anyone for workspace documents; for
+restricted ones the owner and people added), `:edit_document` (rename, versions, links: admins,
+owners, the document owner, editors), `:manage_document` (visibility, people, delete: admins,
+owners, the document owner). Observers never change anything. List queries apply the same rule in
+SQL (`Documents.visible_to/2`). `test/readout/policy_test.exs` is the role × action
 matrix.
 
 ## Sessions and live revocation
@@ -77,6 +127,14 @@ numbers, durations, dates and relative times for the locale.
   clipboard and client toasts, time zone, and view transitions on navigation only). Feature hooks
   are colocated: `.Shortcuts` (keyboard sequences via `data-shortcut`), `.Palette` (⌘K), `.Toast`,
   and `.ToastRegion` (keeps toasts in the top layer above dialogs).
+
+## Files and caching
+
+Team members get page images and downloads from `DocumentFileController`, which checks
+`:view_document` on every request. Page images are immutable per version:
+`Cache-Control: private, max-age=31536000, immutable`. Downloads are audited. Nothing under
+`STORAGE_PATH` is ever served statically. (The public viewer's signed, visit-bound URLs arrive in
+milestone 3.)
 
 ## Security notes
 

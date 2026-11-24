@@ -82,6 +82,75 @@ defmodule Readout.PolicyTest do
     end
   end
 
+  describe "documents" do
+    alias Readout.Documents.{Document, Member}
+
+    defp doc(owner_id, visibility, members \\ []) do
+      %Document{
+        id: Ecto.UUID.generate(),
+        owner_id: owner_id,
+        visibility: visibility,
+        members:
+          Enum.map(members, fn {user_id, role} -> %Member{user_id: user_id, role: role} end)
+      }
+    end
+
+    test "workspace documents: everyone views; only owner and admins change them" do
+      for role <- @roles do
+        actor = scope(role)
+        d = doc(Ecto.UUID.generate(), :workspace)
+        assert Policy.can?(actor, :view_document, d)
+        assert Policy.can?(actor, :edit_document, d) == role in [:owner, :admin]
+        assert Policy.can?(actor, :manage_document, d) == role in [:owner, :admin]
+      end
+    end
+
+    test "restricted documents: only owner, people added and admins view them" do
+      for role <- @roles do
+        actor = scope(role)
+        d = doc(Ecto.UUID.generate(), :restricted)
+        assert Policy.can?(actor, :view_document, d) == role in [:owner, :admin]
+      end
+    end
+
+    test "document owners manage their documents unless they're observers" do
+      for role <- @roles do
+        %Scope{user: me} = actor = scope(role)
+        d = doc(me.id, :restricted)
+        assert Policy.can?(actor, :view_document, d)
+        assert Policy.can?(actor, :edit_document, d) == (role != :observer)
+        assert Policy.can?(actor, :manage_document, d) == (role != :observer)
+      end
+    end
+
+    test "editors edit, viewers view, neither manages" do
+      %Scope{user: me} = actor = scope(:member)
+
+      editor_doc = doc(Ecto.UUID.generate(), :restricted, [{me.id, :editor}])
+      assert Policy.can?(actor, :view_document, editor_doc)
+      assert Policy.can?(actor, :edit_document, editor_doc)
+      refute Policy.can?(actor, :manage_document, editor_doc)
+
+      viewer_doc = doc(Ecto.UUID.generate(), :restricted, [{me.id, :viewer}])
+      assert Policy.can?(actor, :view_document, viewer_doc)
+      refute Policy.can?(actor, :edit_document, viewer_doc)
+
+      %Scope{user: obs} = observer = scope(:observer)
+      observer_editor = doc(Ecto.UUID.generate(), :restricted, [{obs.id, :editor}])
+      assert Policy.can?(observer, :view_document, observer_editor)
+      refute Policy.can?(observer, :edit_document, observer_editor)
+    end
+
+    test "members must be preloaded" do
+      assert_raise ArgumentError, fn ->
+        Policy.can?(scope(:member), :view_document, %Document{
+          visibility: :restricted,
+          owner_id: "x"
+        })
+      end
+    end
+  end
+
   describe "edge cases" do
     test "a deactivated user can do nothing" do
       actor = scope(:owner, deactivated_at: DateTime.utc_now())

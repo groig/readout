@@ -89,6 +89,9 @@ document.addEventListener("click", e => {
   }
 })
 
+// Select an input's text (e.g. inline rename): JS.dispatch("readout:select").
+window.addEventListener("readout:select", e => e.target.select?.())
+
 // ------------------------------------------------- Clipboard and toasts
 
 const toast = (message, kind = "info") => {

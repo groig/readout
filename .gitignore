@@ -36,6 +36,9 @@ npm-debug.log
 /assets/node_modules/
 
 
+# Local document storage in development.
+/tmp/
+
 /docs/initial-prompt.md
 .env
 .env.*

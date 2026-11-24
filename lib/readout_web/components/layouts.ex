@@ -116,6 +116,20 @@ defmodule ReadoutWeb.Layouts do
         id="command-palette"
         current_scope={@current_scope}
       />
+      <.live_component
+        :if={Policy.can?(@current_scope, :upload_document, :workspace)}
+        module={ReadoutWeb.UploadComponent}
+        id="uploader"
+        current_scope={@current_scope}
+      />
+      <button
+        :if={Policy.can?(@current_scope, :upload_document, :workspace)}
+        type="button"
+        class="hidden"
+        tabindex="-1"
+        data-shortcut="u"
+        phx-click={JS.dispatch("readout:pick-file")}
+      />
       <.shortcuts_sheet current_scope={@current_scope} />
 
       <%!-- Invisible shortcut targets for navigation (see the .Shortcuts hook). --%>
@@ -470,6 +484,7 @@ defmodule ReadoutWeb.Layouts do
       {gettext("General"),
        [
          {gettext("Open command palette"), ["mod", "K"]},
+         {gettext("Upload a document"), ["U"]},
          {gettext("Show keyboard shortcuts"), ["?"]},
          {gettext("Toggle sidebar"), ["["]},
          {gettext("Focus search"), ["/"]}

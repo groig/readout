@@ -33,6 +33,14 @@ These rules were settled while building the app and take precedence over the gen
   `ReadoutWeb.ErrorMessages`. Format numbers, durations and dates with `ReadoutWeb.Format`, which
   follows the locale and the scope's time zone. The dev-only `/dev/design` page is the one exemption.
 - **Streams**: every child of a `phx-update="stream"` container needs an id, including empty states.
+- **Document events**: don't subscribe to `"documents"` yourself. The shell already does; implement
+  `def handle_document_event(event, id, socket)` (returning the socket) in a LiveView to react.
+  Re-read through the scope and ignore ids you aren't showing.
+- **External tools** (LibreOffice, poppler, cwebp) run only through `Readout.Documents.Tools.run/3`
+  (timeout + network isolation). Tests that need them are tagged `@moduletag :tools`.
+- **Uploads** open via `JS.dispatch("readout:pick-file")` (the shell's uploader) or
+  `<.button for={@uploads.x.ref}>` for a page's own upload. Validate files by content
+  (`Readout.Documents.FileType`), never by extension.
 
 ## Project guidelines
 

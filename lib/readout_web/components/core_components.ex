@@ -81,6 +81,8 @@ defmodule ReadoutWeb.CoreComponents do
   attr :class, :any, default: nil
   attr :type, :string, default: "button"
 
+  attr :for, :string, default: nil, doc: "render as a <label> for this input (e.g. a file input)"
+
   attr :rest, :global,
     include: ~w(href navigate patch method download name value disabled form replace target)
 
@@ -97,29 +99,47 @@ defmodule ReadoutWeb.CoreComponents do
         ]
       )
 
-    if assigns.rest[:href] || assigns.rest[:navigate] || assigns.rest[:patch] do
-      ~H"""
-      <.link class={@classes} data-loading={@loading} {@rest}>
-        <.icon :if={@icon} name={@icon} class="size-4 -ml-0.5" />
-        {render_slot(@inner_block)}
-        <.icon :if={@trailing_icon} name={@trailing_icon} class="size-4 -mr-0.5" />
-      </.link>
-      """
-    else
-      ~H"""
-      <button
-        type={@type}
-        class={@classes}
-        data-loading={@loading}
-        aria-busy={@loading && "true"}
-        {@rest}
-      >
-        <.icon :if={@icon} name={@icon} class="size-4 -ml-0.5" />
-        {render_slot(@inner_block)}
-        <.icon :if={@trailing_icon} name={@trailing_icon} class="size-4 -mr-0.5" />
-      </button>
-      """
+    cond do
+      assigns.for ->
+        ~H"""
+        <label for={@for} class={@classes} role="button" tabindex="0" {@rest}>
+          <.icon :if={@icon} name={@icon} class="size-4 -ml-0.5" />
+          {render_slot(@inner_block)}
+        </label>
+        """
+
+      assigns.rest[:href] || assigns.rest[:navigate] || assigns.rest[:patch] ->
+        button_link(assigns)
+
+      true ->
+        button_element(assigns)
     end
+  end
+
+  defp button_link(assigns) do
+    ~H"""
+    <.link class={@classes} data-loading={@loading} {@rest}>
+      <.icon :if={@icon} name={@icon} class="size-4 -ml-0.5" />
+      {render_slot(@inner_block)}
+      <.icon :if={@trailing_icon} name={@trailing_icon} class="size-4 -mr-0.5" />
+    </.link>
+    """
+  end
+
+  defp button_element(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      class={@classes}
+      data-loading={@loading}
+      aria-busy={@loading && "true"}
+      {@rest}
+    >
+      <.icon :if={@icon} name={@icon} class="size-4 -ml-0.5" />
+      {render_slot(@inner_block)}
+      <.icon :if={@trailing_icon} name={@trailing_icon} class="size-4 -mr-0.5" />
+    </button>
+    """
   end
 
   @icon_button_sizes %{

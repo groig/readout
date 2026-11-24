@@ -35,6 +35,20 @@ defmodule ReadoutWeb.ShellTest do
     refute has_element?(lv, "[role=option]")
   end
 
+  test "the palette finds documents and offers upload", %{conn: conn, scope: scope} do
+    doc = Readout.DocumentsFixtures.document_fixture(scope)
+
+    {:ok, _} =
+      Readout.Documents.rename_document(scope, Readout.Documents.get_document(scope, doc.id), %{
+        "title" => "Pricing proposal"
+      })
+
+    {:ok, lv, _html} = live(conn, ~p"/documents")
+    assert has_element?(lv, "#palette-upload")
+    lv |> form("#palette-form", %{"q" => "pricing"}) |> render_change()
+    assert has_element?(lv, "#palette-doc-#{doc.id}")
+  end
+
   test "the palette matches without accents", %{conn: conn} do
     assert ReadoutWeb.CommandPalette.normalize("Configuración") == "configuracion"
     {:ok, lv, _html} = live(conn, ~p"/documents")

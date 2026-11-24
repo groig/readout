@@ -102,11 +102,11 @@ defmodule ReadoutWeb.CommandPalette do
 
         <footer class="flex items-center gap-4 border-t border-border bg-inset px-4 py-2 text-2xs text-fg-subtle">
           <span class="flex items-center gap-1"><.kbd>↑</.kbd><.kbd>↓</.kbd>
-           {gettext("navigate")}</span>
+          {gettext("navigate")}</span>
           <span class="flex items-center gap-1"><.kbd>↵</.kbd>
-           {gettext("open")}</span>
+          {gettext("open")}</span>
           <span class="ml-auto flex items-center gap-1"><.kbd>?</.kbd>
-           {gettext("all shortcuts")}</span>
+          {gettext("all shortcuts")}</span>
         </footer>
       </div>
       <.link id="palette-logout" href={~p"/users/log-out"} method="delete" class="hidden"></.link>
@@ -156,11 +156,17 @@ defmodule ReadoutWeb.CommandPalette do
   def results(scope, query) do
     terms = query |> normalize() |> String.split(" ", trim: true)
 
-    scope
-    |> commands()
+    (document_commands(scope, query) ++ commands(scope))
     |> Enum.filter(fn command ->
-      haystack = normalize(command.label <> " " <> Map.get(command, :keywords, ""))
-      Enum.all?(terms, &String.contains?(haystack, &1))
+      # Documents are already matched by the server-side search.
+      command.group == gettext("Documents") or
+        Enum.all?(
+          terms,
+          &String.contains?(
+            normalize(command.label <> " " <> Map.get(command, :keywords, "")),
+            &1
+          )
+        )
     end)
     |> Enum.group_by(& &1.group)
     |> then(fn grouped ->
@@ -168,7 +174,33 @@ defmodule ReadoutWeb.CommandPalette do
     end)
   end
 
-  defp group_order, do: [gettext("Go to"), gettext("Actions"), gettext("Theme")]
+  defp group_order,
+    do: [gettext("Documents"), gettext("Go to"), gettext("Actions"), gettext("Theme")]
+
+  # Documents matching the query (title or page text), when there is one.
+  defp document_commands(nil, _query), do: []
+
+  defp document_commands(scope, query) do
+    if String.trim(query) == "" do
+      []
+    else
+      scope
+      |> Readout.Documents.list_documents(query: query)
+      |> Enum.take(6)
+      |> Enum.map(fn doc ->
+        %{
+          id: "doc-#{doc.id}",
+          group: gettext("Documents"),
+          label: doc.title,
+          icon: "hero-document-text",
+          hint:
+            doc.current_version &&
+              ngettext("%{count} page", "%{count} pages", doc.current_version.page_count),
+          action: {:navigate, ~p"/documents/#{doc.id}"}
+        }
+      end)
+    end
+  end
 
   defp commands(nil), do: []
 
@@ -247,6 +279,16 @@ defmodule ReadoutWeb.CommandPalette do
           keywords: gettext("member user add team"),
           icon: "hero-user-plus",
           action: {:navigate, ~p"/settings/members?invite=1"}
+        },
+      Policy.can?(scope, :upload_document, :workspace) &&
+        %{
+          id: "upload",
+          group: actions,
+          label: gettext("Upload document"),
+          keywords: gettext("new file pdf word powerpoint add"),
+          icon: "hero-arrow-up-tray",
+          keys: ["U"],
+          action: {:js, JS.dispatch("readout:pick-file")}
         },
       %{
         id: "toggle-sidebar",
