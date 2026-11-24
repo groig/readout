@@ -24,7 +24,8 @@ What it does:
   activity feed, and CSV exports of visits and time per page. In-app notifications when someone opens or finishes a document you follow.
 - **Team**: owners, admins, members and observers; invitations; audit log; English and Spanish.
 
-See `docs/ARCHITECTURE.md` for the design (data model, tracking, security).
+See `docs/ARCHITECTURE.md` for the design (data model, tracking, security) and `docs/ROADMAP.md`
+for what is planned next.
 
 ## Run it locally
 
