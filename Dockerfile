@@ -113,6 +113,8 @@ ENV PORT="4000"
 # Only copy the final release from the build stage
 COPY --from=builder --chown=readout:root /app/_build/${MIX_ENV}/rel/readout ./
 
+COPY LICENSE /app/LICENSE
+
 USER readout
 VOLUME ["/data"]
 EXPOSE 4000

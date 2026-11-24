@@ -106,3 +106,8 @@ Configuration (environment variables only):
 | `GEOIP_DB_PATH` | no | MaxMind DB file (e.g. DB-IP Lite City) for viewer locations |
 | `TRUSTED_PROXIES` | no | CIDRs allowed to set `X-Forwarded-For` / `-Proto` (default: loopback + private ranges) |
 | `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s), `POOL_SIZE` (10) | no | limits |
+
+## License
+
+Readout is licensed under the GNU Affero General Public License, version 3 only
+(`AGPL-3.0-only`). See [LICENSE](LICENSE).
