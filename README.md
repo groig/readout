@@ -71,6 +71,11 @@ Useful dev pages (all under `/dev`, which production keeps tailnet-only):
 Readout ships as one Docker image (the Elixir release plus LibreOffice, poppler, cwebp and fonts)
 and runs as a Compose stack (app + Postgres) behind Caddy.
 
+GitHub Actions tests and builds pull requests. A successful push to `main` publishes
+`ghcr.io/groig/readout` with `latest`, `main`, and `sha-<short-commit>` tags. Version
+tags such as `v1.2.3` publish a matching `1.2.3` image. After the first publication,
+the maintainer must set the GHCR package visibility to **Public** to allow anonymous pulls.
+
 1. Copy `compose.example.yml`, `.env.example` (as `.env`) and `deploy/Caddyfile.example` into the
    infra repo and fill in the secrets (`mix phx.gen.secret` for `SECRET_KEY_BASE`).
 2. Optional, for viewer locations: download DB-IP Lite City (free, CC BY 4.0) into `./geoip/` and
@@ -80,8 +85,12 @@ and runs as a Compose stack (app + Postgres) behind Caddy.
    mkdir -p geoip && curl -L https://download.db-ip.com/free/dbip-city-lite-$(date +%Y-%m).mmdb.gz | gunzip > geoip/city.mmdb
    ```
 
-3. `docker compose -f compose.example.yml up -d --build`. Migrations run on every boot.
+3. `docker compose -f compose.example.yml up -d --pull always`. Migrations run on every boot.
 4. Open `https://$PHX_HOST/`: the first visit shows the setup screen for the owner account.
+
+To pin a deployment, replace `latest` in Compose with the published commit tag. To build
+from a source checkout, run `docker build -t readout:local .`, set the Compose app image
+to `readout:local`, and start it with `docker compose -f compose.example.yml up -d`.
 
 Operations:
 

@@ -5,14 +5,13 @@
 # rule for /dev/*.
 #
 #   cp .env.example .env    # fill in secrets
-#   docker compose -f compose.example.yml up -d --build
+#   docker compose -f compose.example.yml up -d --pull always
 
 name: readout
 
 services:
   app:
-    build: .
-    # image: registry.example/readout:latest
+    image: ghcr.io/groig/readout:latest
     restart: unless-stopped
     depends_on:
       db:
