@@ -590,41 +590,12 @@ defmodule ReadoutWeb.DocumentLive.Show do
   ## Links
 
   defp open_link(socket, %Link{} = link) do
-    expires_on =
-      case link.expires_at do
-        nil ->
-          ""
-
-        at ->
-          at
-          |> Readout.TimeZones.shift(socket.assigns.current_scope.timezone)
-          |> DateTime.to_date()
-          |> Date.to_iso8601()
-      end
-
     socket
-    |> assign(editing_link: link, expires_on: expires_on)
+    |> assign(
+      editing_link: link,
+      expires_on: expires_on(link, socket.assigns.current_scope.timezone)
+    )
     |> assign(:link_form, to_form(Links.change_link(link)))
-  end
-
-  # The form sends a date; links expire at the end of that day, in the
-  # person's time zone, stored as UTC.
-  defp link_params(params, timezone) do
-    case Map.get(params, "expires_on") do
-      nil ->
-        params
-
-      "" ->
-        Map.put(params, "expires_at", nil)
-
-      date ->
-        with {:ok, date} <- Date.from_iso8601(date),
-             {:ok, local} <- DateTime.new(date, ~T[23:59:59], timezone) do
-          Map.put(params, "expires_at", DateTime.shift_zone!(local, "Etc/UTC"))
-        else
-          _ -> params
-        end
-    end
   end
 
   @impl true

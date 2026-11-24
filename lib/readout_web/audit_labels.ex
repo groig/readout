@@ -79,6 +79,12 @@ defmodule ReadoutWeb.AuditLabels do
           gettext("%{actor} downloaded «%{subject}»", actor: actor, subject: subject)
         end
 
+      "room.created" ->
+        gettext("%{actor} created the room «%{subject}»", actor: actor, subject: subject)
+
+      "room.deleted" ->
+        gettext("%{actor} deleted the room «%{subject}»", actor: actor, subject: subject)
+
       "link.created" ->
         gettext("%{actor} created the «%{subject}» link for «%{document}»",
           actor: actor,
@@ -119,6 +125,7 @@ defmodule ReadoutWeb.AuditLabels do
       "user.deactivated" -> "hero-no-symbol"
       "user." <> _ -> "hero-user"
       "workspace." <> _ -> "hero-building-office-2"
+      "room." <> _ -> "hero-rectangle-stack"
       "link." <> _ -> "hero-link"
       "document.downloaded" -> "hero-arrow-down-tray"
       "document." <> _ -> "hero-document-text"

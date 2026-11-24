@@ -140,6 +140,19 @@ viewers (grouped by email, or anonymous by IP), recent visits, a visit's page-by
 and the workspace overview. All require `:view_document`; the workspace views only include
 documents the person can see.
 
+## Data rooms
+
+- **rooms** (name, description, `workspace|restricted` visibility, owner, soft delete) and
+  **room_documents** (ordered). A **link** points to a document *or* a room (a check constraint
+  enforces exactly one).
+- Adding a document needs `:edit_room` **and** `:edit_document` on it, so a room never shares what
+  its editor couldn't share directly. Deleted documents leave rooms; documents without a ready
+  version are hidden from viewers.
+- Viewer: a room link passes the same gate, then shows the room's index (`:room`); each document
+  opens at `/v/:slug/d/:document_id`. **Each document read is its own visit** (switching documents
+  ends the previous one), so per-document analytics, notifications and presence work unchanged;
+  per-link breakdowns include room links. `Analytics.room_overview/3` rolls visits up per room.
+
 ## Email
 
 `ReadoutWeb.Emails` builds every email (translated, HTML and text, values escaped).

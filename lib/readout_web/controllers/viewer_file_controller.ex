@@ -30,7 +30,9 @@ defmodule ReadoutWeb.ViewerFileController do
          true <- link.allow_download,
          {:ok, key, ext, type} <- file_for(link, version, kind),
          {:path, path} <- Storage.serve(key) do
-      Audit.log(nil, "document.downloaded", link.document, %{
+      document = Repo.get!(Readout.Documents.Document, visit.document_id)
+
+      Audit.log(nil, "document.downloaded", document, %{
         kind: kind,
         via: "link",
         link: link.name,
@@ -43,7 +45,7 @@ defmodule ReadoutWeb.ViewerFileController do
       |> put_resp_header("cache-control", "private, no-store")
       |> put_resp_header(
         "content-disposition",
-        ReadoutWeb.DocumentFileController.content_disposition(link.document.title <> ext)
+        ReadoutWeb.DocumentFileController.content_disposition(document.title <> ext)
       )
       |> send_file(200, path)
     else

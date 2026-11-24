@@ -7,6 +7,34 @@ defmodule ReadoutWeb.DocumentLive.LinkComponents do
   @doc "The public URL of a link."
   def link_url(%Link{slug: slug}), do: url(~p"/v/#{slug}")
 
+  @doc "The date to show in the expiry field: the link's expiry in `timezone`."
+  def expires_on(%Link{expires_at: nil}, _timezone), do: ""
+
+  def expires_on(%Link{expires_at: at}, timezone),
+    do: at |> Readout.TimeZones.shift(timezone) |> DateTime.to_date() |> Date.to_iso8601()
+
+  @doc """
+  Turns the form's date into `expires_at`: the end of that day in the
+  person's time zone, stored as UTC.
+  """
+  def link_params(params, timezone) do
+    case Map.get(params, "expires_on") do
+      nil ->
+        params
+
+      "" ->
+        Map.put(params, "expires_at", nil)
+
+      date ->
+        with {:ok, date} <- Date.from_iso8601(date),
+             {:ok, local} <- DateTime.new(date, ~T[23:59:59], timezone) do
+          Map.put(params, "expires_at", DateTime.shift_zone!(local, "Etc/UTC"))
+        else
+          _ -> params
+        end
+    end
+  end
+
   attr :links, :any, required: true, doc: "stream of links"
   attr :count, :integer, required: true
   attr :can_edit, :boolean, required: true

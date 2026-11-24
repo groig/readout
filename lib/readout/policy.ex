@@ -32,10 +32,21 @@ defmodule Readout.Policy do
       owners, and the document's owner.
 
   Observers never change anything, whatever else applies.
+
+  ## Rooms
+
+    * `:create_room` (on `:workspace`) - like uploading: owners, admins, members.
+    * `:view_room` - admins and owners always; anyone for workspace rooms; the
+      room's owner for restricted ones.
+    * `:edit_room` (contents, links) and `:manage_room` (visibility, delete) -
+      admins and owners, and the room's owner. Adding a document to a room
+      also needs `:edit_document` on it (checked by `Readout.Rooms`), so a
+      room never shares what its editor couldn't share directly.
   """
 
   alias Readout.Accounts.{Scope, User}
   alias Readout.Documents.{Document, Member}
+  alias Readout.Rooms.Room
 
   @type action :: atom()
   @type resource :: term()
@@ -103,6 +114,28 @@ defmodule Readout.Policy do
 
   defp allowed?(%User{} = user, :edit_document, %Document{} = doc),
     do: member_role(doc, user) == :editor
+
+  ## Rooms
+
+  defp allowed?(%User{role: role}, :create_room, :workspace),
+    do: role in [:owner, :admin, :member]
+
+  defp allowed?(%User{role: role}, :view_room, %Room{}) when role in [:owner, :admin], do: true
+
+  defp allowed?(%User{id: id}, :view_room, %Room{} = room),
+    do: room.visibility == :workspace or room.owner_id == id
+
+  defp allowed?(%User{role: :observer}, action, %Room{})
+       when action in [:edit_room, :manage_room],
+       do: false
+
+  defp allowed?(%User{role: role}, action, %Room{})
+       when role in [:owner, :admin] and action in [:edit_room, :manage_room],
+       do: true
+
+  defp allowed?(%User{id: id}, action, %Room{owner_id: id})
+       when action in [:edit_room, :manage_room],
+       do: true
 
   ## Acting on another person
 

@@ -1,11 +1,13 @@
 defmodule ReadoutWeb.ViewerLive do
   @moduledoc """
   The public viewer at `/v/:slug`: the gate (password, email, verification
-  code), then the document.
+  code), then the document, or for a data room, the room's index and each
+  document at `/v/:slug/d/:document_id`.
 
   States: `:unavailable` (missing, disabled, expired or not ready), `:gate`,
-  `:code` (waiting for the emailed code) and `:reading`. A visit starts when
-  the reader is connected and through the gate.
+  `:code` (waiting for the emailed code), `:room` (a room's index) and
+  `:reading`. A visit starts when the reader is connected, through the gate
+  and reading a document; in a room, each document read is its own visit.
   """
   use ReadoutWeb, :live_view
 
@@ -124,13 +126,68 @@ defmodule ReadoutWeb.ViewerLive do
             </.form>
             <.access_form :if={@grant_token} slug={@link.slug} token={@grant_token} />
           </.public_card>
+        <% :room -> %>
+          <header class="sticky top-0 z-20 flex h-(--topbar-height) items-center gap-3 border-b border-border bg-canvas/85 px-4 backdrop-blur-md">
+            <span class="flex min-w-0 items-center gap-2">
+              <Layouts.logo class="size-5 shrink-0" />
+              <span class="text-sm font-medium text-fg-muted">{@workspace.name}</span>
+            </span>
+            <div class="ml-auto"><Layouts.theme_toggle id="viewer-theme" /></div>
+          </header>
+          <main id="room-index" class="mx-auto max-w-3xl px-4 py-10">
+            <p class="text-xs font-medium text-fg-subtle">
+              {gettext("%{workspace} shared these documents with you", workspace: @workspace.name)}
+            </p>
+            <h1 class="mt-1 text-2xl font-semibold text-fg">{@link.room.name}</h1>
+            <p
+              :if={@link.room.description != ""}
+              class="mt-2 text-md text-fg-muted whitespace-pre-line"
+            >
+              {@link.room.description}
+            </p>
+            <ol class="mt-8 space-y-2">
+              <li
+                :for={{doc, i} <- Enum.with_index(@link.room.documents, 1)}
+                id={"room-doc-#{doc.id}"}
+              >
+                <.link
+                  patch={~p"/v/#{@link.slug}/d/#{doc.id}"}
+                  class="group flex items-center gap-4 rounded-xl border border-border bg-surface px-4 py-3.5 shadow-xs transition-[border-color,box-shadow,transform] duration-(--duration-base) hover:-translate-y-px hover:border-border-strong hover:shadow-md"
+                >
+                  <span class="w-5 text-right text-sm text-fg-subtle tabular-nums">{i}</span>
+                  <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-fg">
+                    <.icon name="hero-document-text" class="size-5" />
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate font-medium text-fg">{doc.title}</span>
+                    <span class="block text-xs text-fg-subtle tabular-nums">
+                      {ngettext("%{count} page", "%{count} pages", doc.current_version.page_count)}
+                    </span>
+                  </span>
+                  <.icon
+                    name="hero-chevron-right-mini"
+                    class="size-4 text-fg-faint transition-transform group-hover:translate-x-0.5"
+                  />
+                </.link>
+              </li>
+            </ol>
+          </main>
         <% :reading -> %>
           <header class="sticky top-0 z-20 flex h-(--topbar-height) items-center gap-3 border-b border-border bg-canvas/85 px-4 backdrop-blur-md">
             <span class="flex min-w-0 items-center gap-2">
               <Layouts.logo class="size-5 shrink-0" />
               <span class="hidden text-sm font-medium text-fg-muted sm:inline">{@workspace.name}</span>
               <.icon name="hero-chevron-right-micro" class="hidden size-3.5 text-fg-faint sm:inline" />
-              <span class="truncate text-sm font-medium text-fg">{@link.document.title}</span>
+              <.link
+                :if={@link.room}
+                id="back-to-room"
+                patch={~p"/v/#{@link.slug}"}
+                class="truncate rounded-md px-1 text-sm text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+              >
+                {@link.room.name}
+              </.link>
+              <.icon :if={@link.room} name="hero-chevron-right-micro" class="size-3.5 text-fg-faint" />
+              <span class="truncate text-sm font-medium text-fg">{@document.title}</span>
             </span>
             <div class="ml-auto flex items-center gap-1.5">
               <.button
@@ -212,9 +269,13 @@ defmodule ReadoutWeb.ViewerLive do
     ~H"""
     <div class="mb-6">
       <p class="text-xs font-medium text-fg-subtle">
-        {gettext("%{workspace} shared a document with you", workspace: @workspace.name)}
+        <%= if @link.room do %>
+          {gettext("%{workspace} shared these documents with you", workspace: @workspace.name)}
+        <% else %>
+          {gettext("%{workspace} shared a document with you", workspace: @workspace.name)}
+        <% end %>
       </p>
-      <h1 class="mt-1 text-xl font-semibold text-fg">{@link.document.title}</h1>
+      <h1 class="mt-1 text-xl font-semibold text-fg">{Link.title(@link)}</h1>
     </div>
     """
   end
@@ -246,14 +307,20 @@ defmodule ReadoutWeb.ViewerLive do
       |> assign(:workspace, Readout.Workspace.get_settings())
       |> assign(:page_title, gettext("Shared document"))
       |> assign(gate_error: nil, grant_token: nil, visit: nil, visit_token: nil, tracker: nil)
+      |> assign(document: nil, version: nil, access: nil)
+      |> stream_configure(:pages, dom_id: &"page-#{&1.number}")
+      |> stream_configure(:thumbs, dom_id: &"thumb-#{&1.number}")
       |> assign(:client_key, client_key(socket))
+      # connect_info is only readable during mount: keep what visits need.
+      |> assign(:client_ip, connected?(socket) && ClientIP.from_socket(socket))
+      |> assign(:user_agent, connected?(socket) && get_connect_info(socket, :user_agent))
 
     case Links.fetch_public_link(slug) do
       {:ok, link} ->
         {:ok,
          socket
          |> assign(:link, link)
-         |> assign(:page_title, link.document.title)
+         |> assign(:page_title, Link.title(link))
          |> assign(:known_email, known_email(session, link))
          |> assign(:device_id, session["device:" <> link.slug])
          |> enter(ViewerAccess.grant(session, link))}
@@ -274,13 +341,14 @@ defmodule ReadoutWeb.ViewerLive do
 
   defp known_email(_session, _link), do: nil
 
-  # Already granted, or nothing to ask: read. Otherwise: the gate.
+  # Already granted, or nothing to ask: in (handle_params decides what to
+  # show). Otherwise: the gate.
   defp enter(socket, %{"email" => email, "verified" => verified?}),
-    do: start_reading(socket, email, verified?)
+    do: assign(socket, state: :entering, access: {email, verified?})
 
   defp enter(%{assigns: %{link: link}} = socket, nil) do
     if not link.require_email and not Link.password?(link) do
-      start_reading(socket, nil, false)
+      assign(socket, state: :entering, access: {nil, false})
     else
       socket
       |> assign(:state, :gate)
@@ -291,38 +359,78 @@ defmodule ReadoutWeb.ViewerLive do
     end
   end
 
-  defp start_reading(socket, email, verified?) do
+  @impl true
+  def handle_params(params, _uri, %{assigns: %{state: state}} = socket)
+      when state in [:entering, :room, :reading] do
+    link = socket.assigns.link
+
+    cond do
+      # A single document's link.
+      not Link.room?(link) ->
+        if state == :reading,
+          do: {:noreply, socket},
+          else: {:noreply, start_reading(socket, link.document)}
+
+      # A room's index.
+      socket.assigns.live_action == :show ->
+        {:noreply,
+         socket
+         |> finish_visit()
+         |> assign(state: :room, document: nil, page_title: link.room.name)}
+
+      # A document inside the room.
+      doc = Enum.find(link.room.documents, &(&1.id == params["document_id"])) ->
+        if state == :reading and match?(%{id: id} when id == doc.id, socket.assigns.document) do
+          {:noreply, socket}
+        else
+          {:noreply, socket |> finish_visit() |> start_reading(doc)}
+        end
+
+      true ->
+        {:noreply, push_patch(socket, to: ~p"/v/#{link.slug}")}
+    end
+  end
+
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
+
+  defp start_reading(socket, document) do
+    {email, verified?} = socket.assigns.access
+    version = document.current_version
+
     socket =
       socket
-      |> assign(state: :reading, email: email, verified: verified?)
-      |> assign(:version, socket.assigns.link.document.current_version)
+      |> assign(
+        state: :reading,
+        email: email,
+        verified: verified?,
+        document: document,
+        version: version
+      )
+      |> assign(:page_title, document.title)
       |> assign(:watermark, watermark(socket.assigns.link, email))
-      |> stream_configure(:pages, dom_id: &"page-#{&1.number}")
-      |> stream_configure(:thumbs, dom_id: &"thumb-#{&1.number}")
 
     if connected?(socket) do
-      link = socket.assigns.link
-
       visit =
-        Links.start_visit(link, %{
+        Links.start_visit(socket.assigns.link, %{
+          document: document,
           email: email,
           email_verified: verified?,
           device_id: socket.assigns.device_id,
-          ip: ClientIP.from_socket(socket),
-          user_agent: get_connect_info(socket, :user_agent)
+          ip: socket.assigns.client_ip || nil,
+          user_agent: socket.assigns.user_agent || nil
         })
 
-      pages = Documents.list_pages(socket.assigns.version)
-      Process.send_after(self(), :tick, @tick_ms)
+      pages = Documents.list_pages(version)
+      if is_nil(socket.assigns.tracker), do: Process.send_after(self(), :tick, @tick_ms)
 
       socket
       |> assign(visit: visit, visit_token: ViewerAccess.sign_visit(visit.id))
-      |> assign(:tracker, Tracker.new(socket.assigns.version.page_count, now()))
+      |> assign(:tracker, Tracker.new(version.page_count, now()))
       |> track_presence()
-      |> stream(:pages, pages)
-      |> stream(:thumbs, pages)
+      |> stream(:pages, pages, reset: true)
+      |> stream(:thumbs, pages, reset: true)
     else
-      socket |> stream(:pages, []) |> stream(:thumbs, [])
+      socket |> stream(:pages, [], reset: true) |> stream(:thumbs, [], reset: true)
     end
   end
 
@@ -461,7 +569,8 @@ defmodule ReadoutWeb.ViewerLive do
 
   defp flush(socket), do: socket
 
-  defp finish_visit(%{assigns: %{visit: %{} = visit}} = socket) do
+  # Only a visit still being tracked can finish (once).
+  defp finish_visit(%{assigns: %{visit: %{} = visit, tracker: %Tracker{}}} = socket) do
     socket = flush(socket)
     Links.end_visit(visit)
     untrack_presence(socket)
@@ -475,15 +584,16 @@ defmodule ReadoutWeb.ViewerLive do
   defp ensure_visit(
          %{assigns: %{state: :reading, tracker: nil, visit: %{ended_at: %DateTime{}}}} = socket
        ) do
-    %{link: link, email: email, verified: verified?} = socket.assigns
+    %{link: link, email: email, verified: verified?, document: document} = socket.assigns
 
     visit =
       Links.start_visit(link, %{
+        document: document,
         email: email,
         email_verified: verified?,
         device_id: socket.assigns.device_id,
-        ip: ClientIP.from_socket(socket),
-        user_agent: get_connect_info(socket, :user_agent)
+        ip: socket.assigns.client_ip || nil,
+        user_agent: socket.assigns.user_agent || nil
       })
 
     socket
@@ -497,7 +607,7 @@ defmodule ReadoutWeb.ViewerLive do
   defp track_presence(%{assigns: %{visit: visit, link: link}} = socket) do
     meta = %{
       visit_id: visit.id,
-      document_id: link.document_id,
+      document_id: socket.assigns.document.id,
       link_id: link.id,
       link_name: link.name,
       email: visit.email,
@@ -509,19 +619,19 @@ defmodule ReadoutWeb.ViewerLive do
       started_at: visit.started_at
     }
 
-    {:ok, _} = Presence.track(self(), Presence.document_topic(link.document_id), visit.id, meta)
+    {:ok, _} = Presence.track(self(), Presence.document_topic(meta.document_id), visit.id, meta)
     {:ok, _} = Presence.track(self(), Presence.workspace_topic(), visit.id, meta)
     assign(socket, :presence_meta, meta)
   end
 
   defp update_presence(
-         %{assigns: %{presence_meta: meta, visit: visit, link: link}} = socket,
+         %{assigns: %{presence_meta: meta, visit: visit}} = socket,
          changes
        ) do
     meta = Map.merge(meta, changes)
 
     if meta != socket.assigns.presence_meta do
-      Presence.update(self(), Presence.document_topic(link.document_id), visit.id, meta)
+      Presence.update(self(), Presence.document_topic(meta.document_id), visit.id, meta)
       Presence.update(self(), Presence.workspace_topic(), visit.id, meta)
     end
 
@@ -530,8 +640,8 @@ defmodule ReadoutWeb.ViewerLive do
 
   defp update_presence(socket, _changes), do: socket
 
-  defp untrack_presence(%{assigns: %{visit: visit, link: link}}) do
-    Presence.untrack(self(), Presence.document_topic(link.document_id), visit.id)
+  defp untrack_presence(%{assigns: %{visit: visit, document: document}}) do
+    Presence.untrack(self(), Presence.document_topic(document.id), visit.id)
     Presence.untrack(self(), Presence.workspace_topic(), visit.id)
   end
 

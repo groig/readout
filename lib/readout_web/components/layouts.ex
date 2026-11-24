@@ -135,6 +135,7 @@ defmodule ReadoutWeb.Layouts do
       <%!-- Invisible shortcut targets for navigation (see the .Shortcuts hook). --%>
       <.link navigate={~p"/documents"} data-shortcut="g d" class="hidden" tabindex="-1"></.link>
       <.link navigate={~p"/analytics"} data-shortcut="g a" class="hidden" tabindex="-1"></.link>
+      <.link navigate={~p"/rooms"} data-shortcut="g r" class="hidden" tabindex="-1"></.link>
       <.link navigate={~p"/settings/profile"} data-shortcut="g s" class="hidden" tabindex="-1"></.link>
       <.link
         :if={Policy.can?(@current_scope, :view_members, :workspace)}
@@ -309,6 +310,14 @@ defmodule ReadoutWeb.Layouts do
           shortcut="G D"
         >
           {gettext("Documents")}
+        </.nav_item>
+        <.nav_item
+          navigate={~p"/rooms"}
+          icon="hero-rectangle-stack"
+          active={@active == :rooms}
+          shortcut="G R"
+        >
+          {gettext("Rooms")}
         </.nav_item>
         <.nav_item
           navigate={~p"/analytics"}
@@ -499,6 +508,7 @@ defmodule ReadoutWeb.Layouts do
       {gettext("Go to"),
        [
          {gettext("Documents"), ["G", "D"]},
+         {gettext("Rooms"), ["G", "R"]},
          {gettext("Analytics"), ["G", "A"]},
          {gettext("Settings"), ["G", "S"]},
          {gettext("Members"), ["G", "M"]}

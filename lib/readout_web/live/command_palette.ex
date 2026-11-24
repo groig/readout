@@ -231,6 +231,15 @@ defmodule ReadoutWeb.CommandPalette do
         action: {:navigate, ~p"/documents"}
       },
       %{
+        id: "go-rooms",
+        group: go,
+        label: gettext("Rooms"),
+        keywords: gettext("data room folder share several"),
+        icon: "hero-rectangle-stack",
+        keys: ["G", "R"],
+        action: {:navigate, ~p"/rooms"}
+      },
+      %{
         id: "go-analytics",
         group: go,
         label: gettext("Analytics"),

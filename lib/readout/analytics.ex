@@ -213,7 +213,7 @@ defmodule Readout.Analytics do
     end
   end
 
-  @doc "Visits, unique viewers and average time per link."
+  @doc "Visits, unique viewers and average time per link (including room links)."
   def per_link(%Scope{} = scope, %Document{} = doc, opts \\ []) do
     authorize!(scope, doc)
     {from, _} = range_bounds(opts[:range])
@@ -221,7 +221,8 @@ defmodule Readout.Analytics do
     from(l in Link,
       left_join: v in subquery(visits(doc, opts) |> since(from)),
       on: v.link_id == l.id,
-      where: l.document_id == ^doc.id,
+      # Its own links (even unvisited), plus room links it was read through.
+      where: l.document_id == ^doc.id or not is_nil(v.id),
       group_by: [l.id, l.name],
       order_by: [desc: count(v.id), asc: l.name],
       select: %{
@@ -311,6 +312,48 @@ defmodule Readout.Analytics do
     else
       _ -> nil
     end
+  end
+
+  ## Rooms
+
+  @doc """
+  A room's roll-up: totals over visits through its links, visits and time per
+  document (in room order), and the latest visits.
+  """
+  def room_overview(%Scope{} = scope, %Readout.Rooms.Room{} = room, opts \\ []) do
+    unless Policy.can?(scope, :view_room, room), do: raise(ArgumentError, "unauthorized")
+    {from, _} = range_bounds(opts[:range])
+
+    base =
+      from(v in Visit, join: l in Link, on: l.id == v.link_id, where: l.room_id == ^room.id)
+      |> since(from)
+
+    per_doc =
+      from(v in base,
+        group_by: v.document_id,
+        select: {v.document_id, %{visits: count(v.id), total_ms: sum(v.duration_ms)}}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    %{
+      totals: totals(base),
+      per_document:
+        for doc <- room.documents do
+          stats = Map.get(per_doc, doc.id, %{visits: 0, total_ms: 0})
+          total = to_int(stats.total_ms || 0)
+
+          %{
+            document_id: doc.id,
+            title: doc.title,
+            visits: stats.visits,
+            avg_ms: if(stats.visits > 0, do: div(total, stats.visits), else: 0)
+          }
+        end,
+      recent:
+        from(v in base, order_by: [desc: v.started_at], limit: 30, preload: [:link, :document])
+        |> Repo.all()
+    }
   end
 
   ## Workspace overview

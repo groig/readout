@@ -22,6 +22,7 @@ defmodule Readout.Audit do
     user.role_changed user.deactivated user.reactivated
     document.deleted document.downloaded
     link.created link.updated link.enabled link.disabled
+    room.created room.deleted
   )
 
   def actions, do: @actions

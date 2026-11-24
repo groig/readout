@@ -13,18 +13,20 @@ defmodule Readout.Links do
   alias Readout.{Audit, Documents, Policy, RateLimit, Repo}
   alias Readout.Documents.Document
   alias Readout.Links.{Link, Verification, Visit}
+  alias Readout.Rooms
+  alias Readout.Rooms.Room
 
   ## Managing links
 
-  @doc "Links of a document (anyone who can see the document), newest first."
-  def list_links(%Scope{} = scope, %Document{} = document) do
-    if Policy.can?(scope, :view_document, document) do
+  @doc "Links of a document or room (anyone who can see it), newest first."
+  def list_links(%Scope{} = scope, target) do
+    if Policy.can?(scope, view_action(target), target) do
       visits =
         from v in Visit, where: v.link_id == parent_as(:link).id, select: count(v.id)
 
       from(l in Link,
         as: :link,
-        where: l.document_id == ^document.id,
+        where: ^target_filter(target),
         order_by: [desc: l.inserted_at],
         select_merge: %{visit_count: subquery(visits)}
       )
@@ -34,33 +36,55 @@ defmodule Readout.Links do
     end
   end
 
-  def get_link(%Document{} = document, id) do
+  def get_link(target, id) do
     with {:ok, _} <- Ecto.UUID.cast(id) do
-      Repo.get_by(Link, id: id, document_id: document.id)
+      Link |> where([l], l.id == ^id) |> where(^target_filter(target)) |> Repo.one()
     else
       _ -> nil
     end
   end
 
+  defp target_filter(%Document{id: id}), do: dynamic([l], l.document_id == ^id)
+  defp target_filter(%Room{id: id}), do: dynamic([l], l.room_id == ^id)
+
+  defp view_action(%Document{}), do: :view_document
+  defp view_action(%Room{}), do: :view_room
+  defp edit_action(%Document{}), do: :edit_document
+  defp edit_action(%Room{}), do: :edit_room
+
+  defp target_title(%Document{title: title}), do: title
+  defp target_title(%Room{name: name}), do: name
+
+  defp notify(%Document{id: id}), do: Documents.notify(id)
+
+  defp notify(%Room{} = room),
+    do: Phoenix.PubSub.broadcast(Readout.PubSub, "rooms", {:room_updated, room.id})
+
   def change_link(%Link{} = link, attrs \\ %{}) do
     Link.changeset(link, attrs, mail_enabled: Readout.Mailer.enabled?())
   end
 
-  def create_link(%Scope{user: user} = scope, %Document{} = document, attrs) do
-    with :ok <- Policy.authorize(scope, :edit_document, document),
+  def create_link(%Scope{user: user} = scope, target, attrs) do
+    base =
+      case target do
+        %Document{id: id} -> %Link{document_id: id}
+        %Room{id: id} -> %Link{room_id: id}
+      end
+
+    with :ok <- Policy.authorize(scope, edit_action(target), target),
          {:ok, link} <-
-           %Link{document_id: document.id, created_by_id: user.id, slug: Link.generate_slug()}
+           %{base | created_by_id: user.id, slug: Link.generate_slug()}
            |> change_link(attrs)
            |> Repo.insert() do
-      Audit.log(scope, "link.created", link, %{document: document.title})
-      Documents.notify(document.id)
+      Audit.log(scope, "link.created", link, %{document: target_title(target)})
+      notify(target)
       {:ok, link}
     end
   end
 
-  def update_link(%Scope{} = scope, %Document{} = document, %Link{} = link, attrs) do
-    with :ok <- Policy.authorize(scope, :edit_document, document),
-         :ok <- same_document(document, link),
+  def update_link(%Scope{} = scope, target, %Link{} = link, attrs) do
+    with :ok <- Policy.authorize(scope, edit_action(target), target),
+         :ok <- same_target(target, link),
          changeset = change_link(link, attrs),
          {:ok, updated} <- Repo.update(changeset) do
       action =
@@ -76,20 +100,21 @@ defmodule Readout.Links do
         |> Enum.reject(&(&1 in [:password, :allow_list_text, :deny_list_text]))
 
       Audit.log(scope, action, updated, %{
-        document: document.title,
+        document: target_title(target),
         changed: Enum.map(changed, &to_string/1)
       })
 
-      Documents.notify(document.id)
+      notify(target)
       {:ok, updated}
     end
   end
 
-  def set_enabled(scope, document, link, enabled?) when is_boolean(enabled?),
-    do: update_link(scope, document, link, %{"enabled" => enabled?})
+  def set_enabled(scope, target, link, enabled?) when is_boolean(enabled?),
+    do: update_link(scope, target, link, %{"enabled" => enabled?})
 
-  defp same_document(%Document{id: id}, %Link{document_id: id}), do: :ok
-  defp same_document(_, _), do: {:error, :unauthorized}
+  defp same_target(%Document{id: id}, %Link{document_id: id}), do: :ok
+  defp same_target(%Room{id: id}, %Link{room_id: id}), do: :ok
+  defp same_target(_, _), do: {:error, :unauthorized}
 
   ## Public side
 
@@ -100,20 +125,34 @@ defmodule Readout.Links do
   def fetch_public_link(slug) when is_binary(slug) do
     link =
       from(l in Link,
-        join: d in assoc(l, :document),
-        where: l.slug == ^slug and is_nil(d.deleted_at),
-        preload: [document: {d, [:current_version]}]
+        left_join: d in assoc(l, :document),
+        left_join: r in assoc(l, :room),
+        where: l.slug == ^slug,
+        where:
+          (not is_nil(d.id) and is_nil(d.deleted_at)) or
+            (not is_nil(r.id) and is_nil(r.deleted_at)),
+        preload: [document: {d, [:current_version]}, room: r]
       )
       |> Repo.one()
+      |> put_room_documents()
 
     cond do
       is_nil(link) -> {:error, :not_found}
       not link.enabled -> {:error, :disabled}
       Link.expired?(link) -> {:error, :expired}
-      is_nil(link.document.current_version) -> {:error, :not_ready}
+      Link.room?(link) and link.room.documents == [] -> {:error, :not_ready}
+      not Link.room?(link) and is_nil(link.document.current_version) -> {:error, :not_ready}
       true -> {:ok, link}
     end
   end
+
+  # A room link shows only documents that are ready.
+  defp put_room_documents(%Link{room: %Room{} = room} = link) do
+    [room] = Rooms.put_documents([room])
+    %{link | room: %{room | documents: Enum.filter(room.documents, & &1.current_version)}}
+  end
+
+  defp put_room_documents(link), do: link
 
   @doc """
   Checks the gate's form: password (if any) and email (if required, against
@@ -167,7 +206,7 @@ defmodule Readout.Links do
       email
       |> ReadoutWeb.Emails.verification_code(locale, %{
         code: code,
-        document: link.document.title,
+        document: Link.title(link),
         workspace: Readout.Workspace.get_settings().name,
         minutes: Verification.validity_minutes()
       })
@@ -215,16 +254,20 @@ defmodule Readout.Links do
 
   ## Visits
 
-  @doc "Starts a visit once the viewer is through the gate."
+  @doc """
+  Starts a visit once the viewer is through the gate. For room links, pass
+  the document being read as `:document`.
+  """
   def start_visit(%Link{} = link, attrs) do
     now = DateTime.utc_now()
     location = Readout.GeoIP.lookup(attrs[:ip]) || %{country_code: nil, country: %{}, city: %{}}
-    version = link.document.current_version
+    document = attrs[:document] || link.document
+    version = document.current_version
 
     %Visit{
       link_id: link.id,
-      document_id: link.document_id,
-      version_id: link.document.current_version_id,
+      document_id: document.id,
+      version_id: version && version.id,
       email: attrs[:email],
       email_verified: !!attrs[:email_verified],
       device_id: attrs[:device_id],

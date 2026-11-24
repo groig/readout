@@ -165,7 +165,7 @@ msgstr ""
 msgid "Active"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:441
+#: lib/readout_web/components/layouts.ex:450
 #, elixir-autogen, elixir-format
 msgid "Admin"
 msgstr ""
@@ -185,15 +185,16 @@ msgstr ""
 msgid "All roles"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:319
-#: lib/readout_web/components/layouts.ex:502
+#: lib/readout_web/components/layouts.ex:328
+#: lib/readout_web/components/layouts.ex:512
 #: lib/readout_web/live/analytics_live.ex:16
 #: lib/readout_web/live/analytics_live.ex:19
 #: lib/readout_web/live/analytics_live.ex:191
-#: lib/readout_web/live/command_palette.ex:236
+#: lib/readout_web/live/command_palette.ex:245
 #: lib/readout_web/live/document_live/analytics.ex:19
 #: lib/readout_web/live/document_live/analytics.ex:32
 #: lib/readout_web/live/document_live/show.ex:191
+#: lib/readout_web/live/room_live/show.ex:56
 #, elixir-autogen, elixir-format
 msgid "Analytics"
 msgstr ""
@@ -211,8 +212,8 @@ msgstr ""
 msgid "At least 12 characters."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:424
-#: lib/readout_web/live/command_palette.ex:272
+#: lib/readout_web/components/layouts.ex:433
+#: lib/readout_web/live/command_palette.ex:281
 #: lib/readout_web/live/settings_live/audit.ex:18
 #: lib/readout_web/live/settings_live/audit.ex:23
 #: lib/readout_web/live/settings_live/audit.ex:106
@@ -237,9 +238,12 @@ msgid "Breadcrumb"
 msgstr ""
 
 #: lib/readout_web/live/document_live/index.ex:247
-#: lib/readout_web/live/document_live/link_components.ex:259
+#: lib/readout_web/live/document_live/link_components.ex:287
 #: lib/readout_web/live/document_live/show.ex:172
 #: lib/readout_web/live/document_live/show.ex:287
+#: lib/readout_web/live/room_live/index.ex:88
+#: lib/readout_web/live/room_live/show.ex:154
+#: lib/readout_web/live/room_live/show.ex:164
 #: lib/readout_web/live/settings_live/members.ex:258
 #: lib/readout_web/live/settings_live/members.ex:318
 #: lib/readout_web/live/settings_live/workspace.ex:92
@@ -274,7 +278,7 @@ msgstr ""
 msgid "Choose a person"
 msgstr ""
 
-#: lib/readout_web/live/document_live/show.ex:790
+#: lib/readout_web/live/document_live/show.ex:758
 #: lib/readout_web/live/settings_live/workspace.ex:149
 #, elixir-autogen, elixir-format
 msgid "Choose a person first."
@@ -302,12 +306,12 @@ msgstr ""
 msgid "Confirm new password"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:642
+#: lib/readout_web/components/layouts.ex:652
 #, elixir-autogen, elixir-format
 msgid "Connection lost"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:91
+#: lib/readout_web/live/document_live/link_components.ex:119
 #: lib/readout_web/live/settings_live/members.ex:293
 #, elixir-autogen, elixir-format
 msgid "Copy"
@@ -343,8 +347,8 @@ msgstr ""
 msgid "Dark"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:534
-#: lib/readout_web/live/command_palette.ex:330
+#: lib/readout_web/components/layouts.ex:544
+#: lib/readout_web/live/command_palette.ex:339
 #, elixir-autogen, elixir-format
 msgid "Dark theme"
 msgstr ""
@@ -378,8 +382,8 @@ msgid "Dismiss"
 msgstr ""
 
 #: lib/readout_web/audit_labels.ex:14
-#: lib/readout_web/components/layouts.ex:311
-#: lib/readout_web/components/layouts.ex:501
+#: lib/readout_web/components/layouts.ex:312
+#: lib/readout_web/components/layouts.ex:510
 #: lib/readout_web/live/command_palette.ex:162
 #: lib/readout_web/live/command_palette.ex:178
 #: lib/readout_web/live/command_palette.ex:193
@@ -390,10 +394,12 @@ msgstr ""
 #: lib/readout_web/live/document_live/index.ex:32
 #: lib/readout_web/live/document_live/index.ex:306
 #: lib/readout_web/live/document_live/show.ex:22
+#: lib/readout_web/live/room_live/show.ex:50
 #, elixir-autogen, elixir-format
 msgid "Documents"
 msgstr ""
 
+#: lib/readout_web/live/room_live/show.ex:137
 #: lib/readout_web/live/settings_live/members.ex:301
 #, elixir-autogen, elixir-format
 msgid "Done"
@@ -411,8 +417,8 @@ msgstr ""
 msgid "Email"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:408
-#: lib/readout_web/live/command_palette.ex:253
+#: lib/readout_web/components/layouts.ex:417
+#: lib/readout_web/live/command_palette.ex:262
 #: lib/readout_web/live/user_live/settings.ex:14
 #: lib/readout_web/live/user_live/settings.ex:122
 #, elixir-autogen, elixir-format
@@ -429,12 +435,12 @@ msgstr ""
 msgid "Email me a sign-in link"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:447
+#: lib/readout_web/components/layouts.ex:456
 #, elixir-autogen, elixir-format
 msgid "Everything, including workspace settings and admins."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:36
+#: lib/readout_web/live/document_live/link_components.ex:64
 #: lib/readout_web/live/settings_live/members.ex:178
 #, elixir-autogen, elixir-format
 msgid "Expired"
@@ -450,18 +456,18 @@ msgstr ""
 msgid "Expires on %{date}."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:497
+#: lib/readout_web/components/layouts.ex:506
 #, elixir-autogen, elixir-format
 msgid "Focus search"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:490
+#: lib/readout_web/components/layouts.ex:499
 #: lib/readout_web/live/settings_live/workspace.ex:23
 #, elixir-autogen, elixir-format
 msgid "General"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:499
+#: lib/readout_web/components/layouts.ex:508
 #: lib/readout_web/live/command_palette.ex:178
 #: lib/readout_web/live/command_palette.ex:220
 #, elixir-autogen, elixir-format
@@ -514,7 +520,7 @@ msgstr ""
 msgid "Invitations, role changes and sharing activity will show up here."
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:290
+#: lib/readout_web/live/command_palette.ex:299
 #: lib/readout_web/live/settings_live/members.ex:43
 #: lib/readout_web/live/settings_live/members.ex:211
 #, elixir-autogen, elixir-format
@@ -552,9 +558,9 @@ msgstr ""
 msgid "Keep me signed in on this device"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:273
-#: lib/readout_web/components/layouts.ex:462
-#: lib/readout_web/live/command_palette.ex:316
+#: lib/readout_web/components/layouts.ex:274
+#: lib/readout_web/components/layouts.ex:471
+#: lib/readout_web/live/command_palette.ex:325
 #, elixir-autogen, elixir-format
 msgid "Keyboard shortcuts"
 msgstr ""
@@ -579,8 +585,8 @@ msgstr ""
 msgid "Light"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:533
-#: lib/readout_web/live/command_palette.ex:329
+#: lib/readout_web/components/layouts.ex:543
+#: lib/readout_web/live/command_palette.ex:338
 #, elixir-autogen, elixir-format
 msgid "Light theme"
 msgstr ""
@@ -595,13 +601,13 @@ msgstr ""
 msgid "Load older entries"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:281
-#: lib/readout_web/live/command_palette.ex:324
+#: lib/readout_web/components/layouts.ex:282
+#: lib/readout_web/live/command_palette.ex:333
 #, elixir-autogen, elixir-format
 msgid "Log out"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:303
+#: lib/readout_web/components/layouts.ex:304
 #, elixir-autogen, elixir-format
 msgid "Main"
 msgstr ""
@@ -611,20 +617,20 @@ msgstr ""
 msgid "Make %{role}"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:449
+#: lib/readout_web/components/layouts.ex:458
 #, elixir-autogen, elixir-format
 msgid "Manages people and sees every document."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:442
+#: lib/readout_web/components/layouts.ex:451
 #, elixir-autogen, elixir-format
 msgid "Member"
 msgstr ""
 
 #: lib/readout_web/audit_labels.ex:12
-#: lib/readout_web/components/layouts.ex:416
-#: lib/readout_web/components/layouts.ex:504
-#: lib/readout_web/live/command_palette.ex:262
+#: lib/readout_web/components/layouts.ex:425
+#: lib/readout_web/components/layouts.ex:514
+#: lib/readout_web/live/command_palette.ex:271
 #: lib/readout_web/live/settings_live/members.ex:22
 #: lib/readout_web/live/settings_live/members.ex:28
 #: lib/readout_web/live/settings_live/members.ex:340
@@ -634,21 +640,23 @@ msgstr ""
 
 #: lib/readout_web/live/document_live/index.ex:61
 #: lib/readout_web/live/document_live/index.ex:109
-#: lib/readout_web/live/document_live/link_components.ex:133
+#: lib/readout_web/live/document_live/link_components.ex:161
+#: lib/readout_web/live/room_live/index.ex:79
+#: lib/readout_web/live/room_live/show.ex:143
 #: lib/readout_web/live/settings_live/members.ex:86
 #: lib/readout_web/live/settings_live/profile.ex:43
 #, elixir-autogen, elixir-format
 msgid "Name"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:120
+#: lib/readout_web/live/document_live/link_components.ex:148
 #: lib/readout_web/live/document_live/show.ex:209
 #: lib/readout_web/live/settings_live/members.ex:194
 #, elixir-autogen, elixir-format
 msgid "New link"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:170
+#: lib/readout_web/live/document_live/link_components.ex:198
 #: lib/readout_web/live/user_live/reset_password.ex:58
 #: lib/readout_web/live/user_live/settings.ex:77
 #, elixir-autogen, elixir-format
@@ -680,10 +688,10 @@ msgstr ""
 msgid "Nothing here yet"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:494
-#: lib/readout_web/live/notifications_component.ex:85
-#: lib/readout_web/live/notifications_component.ex:98
-#: lib/readout_web/live/notifications_component.ex:101
+#: lib/readout_web/components/layouts.ex:503
+#: lib/readout_web/live/notifications_component.ex:92
+#: lib/readout_web/live/notifications_component.ex:105
+#: lib/readout_web/live/notifications_component.ex:108
 #: lib/readout_web/live/settings_live/profile.ex:114
 #, elixir-autogen, elixir-format
 msgid "Notifications"
@@ -694,17 +702,17 @@ msgstr ""
 msgid "Notify me about my documents"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:443
+#: lib/readout_web/components/layouts.ex:452
 #, elixir-autogen, elixir-format
 msgid "Observer"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:492
+#: lib/readout_web/components/layouts.ex:501
 #, elixir-autogen, elixir-format
 msgid "Open command palette"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:440
+#: lib/readout_web/components/layouts.ex:449
 #: lib/readout_web/live/document_live/index.ex:133
 #: lib/readout_web/live/document_live/show.ex:421
 #, elixir-autogen, elixir-format
@@ -721,12 +729,12 @@ msgstr ""
 msgid "Ownership couldn't be transferred."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:44
-#: lib/readout_web/live/document_live/link_components.ex:178
+#: lib/readout_web/live/document_live/link_components.ex:72
+#: lib/readout_web/live/document_live/link_components.ex:206
 #: lib/readout_web/live/setup_live.ex:48
 #: lib/readout_web/live/user_live/login.ex:49
 #: lib/readout_web/live/user_live/settings.ex:51
-#: lib/readout_web/live/viewer_live.ex:62
+#: lib/readout_web/live/viewer_live.ex:64
 #, elixir-autogen, elixir-format
 msgid "Password"
 msgstr ""
@@ -756,9 +764,9 @@ msgstr ""
 msgid "Preferences saved."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:263
-#: lib/readout_web/components/layouts.ex:405
-#: lib/readout_web/live/command_palette.ex:244
+#: lib/readout_web/components/layouts.ex:264
+#: lib/readout_web/components/layouts.ex:414
+#: lib/readout_web/live/command_palette.ex:253
 #: lib/readout_web/live/settings_live/profile.ex:13
 #: lib/readout_web/live/settings_live/profile.ex:21
 #: lib/readout_web/live/settings_live/profile.ex:150
@@ -776,7 +784,7 @@ msgstr ""
 msgid "Reactivate"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:454
+#: lib/readout_web/components/layouts.ex:463
 #, elixir-autogen, elixir-format
 msgid "Read-only access to documents and analytics."
 msgstr ""
@@ -786,8 +794,8 @@ msgstr ""
 msgid "Readout is already set up. Please sign in."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:651
-#: lib/readout_web/components/layouts.ex:666
+#: lib/readout_web/components/layouts.ex:661
+#: lib/readout_web/components/layouts.ex:676
 #, elixir-autogen, elixir-format
 msgid "Reconnecting…"
 msgstr ""
@@ -809,7 +817,8 @@ msgstr ""
 msgid "Role"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:261
+#: lib/readout_web/live/document_live/link_components.ex:289
+#: lib/readout_web/live/room_live/show.ex:155
 #: lib/readout_web/live/settings_live/workspace.ex:39
 #, elixir-autogen, elixir-format
 msgid "Save"
@@ -830,7 +839,7 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:291
+#: lib/readout_web/components/layouts.ex:292
 #, elixir-autogen, elixir-format
 msgid "Search and commands"
 msgstr ""
@@ -850,7 +859,7 @@ msgstr ""
 msgid "Search people"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:294
+#: lib/readout_web/components/layouts.ex:295
 #, elixir-autogen, elixir-format
 msgid "Search…"
 msgstr ""
@@ -865,9 +874,9 @@ msgstr ""
 msgid "Set up Readout"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:327
-#: lib/readout_web/components/layouts.ex:402
-#: lib/readout_web/components/layouts.ex:503
+#: lib/readout_web/components/layouts.ex:336
+#: lib/readout_web/components/layouts.ex:411
+#: lib/readout_web/components/layouts.ex:513
 #: lib/readout_web/live/settings_live/audit.ex:17
 #: lib/readout_web/live/settings_live/members.ex:21
 #: lib/readout_web/live/settings_live/profile.ex:12
@@ -887,7 +896,7 @@ msgstr ""
 msgid "Share this link with %{email}. Anyone with it can join as %{role}."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:495
+#: lib/readout_web/components/layouts.ex:504
 #, elixir-autogen, elixir-format
 msgid "Show keyboard shortcuts"
 msgstr ""
@@ -936,7 +945,7 @@ msgstr ""
 msgid "Someone"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:657
+#: lib/readout_web/components/layouts.ex:667
 #, elixir-autogen, elixir-format
 msgid "Something went wrong"
 msgstr ""
@@ -952,8 +961,8 @@ msgstr ""
 msgid "System"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:532
-#: lib/readout_web/live/command_palette.ex:331
+#: lib/readout_web/components/layouts.ex:542
+#: lib/readout_web/live/command_palette.ex:340
 #, elixir-autogen, elixir-format
 msgid "System theme"
 msgstr ""
@@ -974,7 +983,7 @@ msgstr ""
 msgid "The workspace needs at least one owner."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:523
+#: lib/readout_web/components/layouts.ex:533
 #: lib/readout_web/live/command_palette.ex:178
 #: lib/readout_web/live/command_palette.ex:222
 #: lib/readout_web/live/settings_live/profile.ex:101
@@ -1013,8 +1022,8 @@ msgid "Time zone"
 msgstr ""
 
 #: lib/readout_web/components/layouts.ex:74
-#: lib/readout_web/components/layouts.ex:496
-#: lib/readout_web/live/command_palette.ex:308
+#: lib/readout_web/components/layouts.ex:505
+#: lib/readout_web/live/command_palette.ex:317
 #, elixir-autogen, elixir-format
 msgid "Toggle sidebar"
 msgstr ""
@@ -1045,7 +1054,7 @@ msgstr ""
 msgid "Try another search or clear the filters."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:452
+#: lib/readout_web/components/layouts.ex:461
 #, elixir-autogen, elixir-format
 msgid "Uploads documents, shares links, sees their analytics."
 msgstr ""
@@ -1096,8 +1105,9 @@ msgid "Work email"
 msgstr ""
 
 #: lib/readout_web/audit_labels.ex:13
-#: lib/readout_web/components/layouts.ex:432
+#: lib/readout_web/components/layouts.ex:441
 #: lib/readout_web/document_labels.ex:43
+#: lib/readout_web/live/room_live/show.ex:150
 #: lib/readout_web/live/settings_live/workspace.ex:16
 #: lib/readout_web/live/settings_live/workspace.ex:114
 #, elixir-autogen, elixir-format
@@ -1114,8 +1124,8 @@ msgstr ""
 msgid "Workspace saved."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:270
-#: lib/readout_web/live/command_palette.ex:281
+#: lib/readout_web/components/layouts.ex:271
+#: lib/readout_web/live/command_palette.ex:290
 #, elixir-autogen, elixir-format
 msgid "Workspace settings"
 msgstr ""
@@ -1126,12 +1136,19 @@ msgid "You"
 msgstr ""
 
 #: lib/readout_web/live/document_live/index.ex:443
-#: lib/readout_web/live/document_live/show.ex:711
-#: lib/readout_web/live/document_live/show.ex:751
-#: lib/readout_web/live/document_live/show.ex:764
-#: lib/readout_web/live/document_live/show.ex:774
-#: lib/readout_web/live/document_live/show.ex:797
-#: lib/readout_web/live/document_live/show.ex:812
+#: lib/readout_web/live/document_live/show.ex:679
+#: lib/readout_web/live/document_live/show.ex:719
+#: lib/readout_web/live/document_live/show.ex:732
+#: lib/readout_web/live/document_live/show.ex:742
+#: lib/readout_web/live/document_live/show.ex:765
+#: lib/readout_web/live/document_live/show.ex:780
+#: lib/readout_web/live/room_live/index.ex:129
+#: lib/readout_web/live/room_live/show.ex:262
+#: lib/readout_web/live/room_live/show.ex:269
+#: lib/readout_web/live/room_live/show.ex:276
+#: lib/readout_web/live/room_live/show.ex:292
+#: lib/readout_web/live/room_live/show.ex:302
+#: lib/readout_web/live/room_live/show.ex:352
 #: lib/readout_web/live/settings_live/members.ex:571
 #: lib/readout_web/live/settings_live/workspace.ex:143
 #, elixir-autogen, elixir-format
@@ -1165,7 +1182,7 @@ msgstr ""
 msgid "all shortcuts"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:341
+#: lib/readout_web/live/command_palette.ex:350
 #, elixir-autogen, elixir-format
 msgid "appearance mode switch"
 msgstr ""
@@ -1180,7 +1197,7 @@ msgstr ""
 msgid "local mailbox"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:291
+#: lib/readout_web/live/command_palette.ex:300
 #, elixir-autogen, elixir-format
 msgid "member user add team"
 msgstr ""
@@ -1201,32 +1218,32 @@ msgstr ""
 msgid "open"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:254
+#: lib/readout_web/live/command_palette.ex:263
 #, elixir-autogen, elixir-format
 msgid "settings account security"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:273
+#: lib/readout_web/live/command_palette.ex:282
 #, elixir-autogen, elixir-format
 msgid "settings history security"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:282
+#: lib/readout_web/live/command_palette.ex:291
 #, elixir-autogen, elixir-format
 msgid "settings notifications ownership"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:263
+#: lib/readout_web/live/command_palette.ex:272
 #, elixir-autogen, elixir-format
 msgid "settings people team users roles"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:245
+#: lib/readout_web/live/command_palette.ex:254
 #, elixir-autogen, elixir-format
 msgid "settings preferences language time zone"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:325
+#: lib/readout_web/live/command_palette.ex:334
 #, elixir-autogen, elixir-format
 msgid "sign out"
 msgstr ""
@@ -1236,7 +1253,7 @@ msgstr ""
 msgid "someone"
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:475
+#: lib/readout_web/components/layouts.ex:484
 #, elixir-autogen, elixir-format
 msgid "then"
 msgstr ""
@@ -1257,6 +1274,7 @@ msgid "%{actor} downloaded «%{subject}»"
 msgstr ""
 
 #: lib/readout_web/live/document_live/index.ex:215
+#: lib/readout_web/live/room_live/index.ex:66
 #, elixir-autogen, elixir-format
 msgid "%{count} link"
 msgid_plural "%{count} links"
@@ -1266,6 +1284,8 @@ msgstr[1] ""
 #: lib/readout_web/live/command_palette.ex:198
 #: lib/readout_web/live/document_live/index.ex:461
 #: lib/readout_web/live/document_live/show.ex:140
+#: lib/readout_web/live/room_live/show.ex:81
+#: lib/readout_web/live/viewer_live.ex:158
 #, elixir-autogen, elixir-format
 msgid "%{count} page"
 msgid_plural "%{count} pages"
@@ -1280,6 +1300,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/readout_web/live/document_live/show.ex:470
+#: lib/readout_web/live/room_live/show.ex:133
 #, elixir-autogen, elixir-format
 msgid "Add"
 msgstr ""
@@ -1308,6 +1329,8 @@ msgstr ""
 #: lib/readout_web/live/document_live/index.ex:296
 #: lib/readout_web/live/document_live/show.ex:92
 #: lib/readout_web/live/document_live/show.ex:289
+#: lib/readout_web/live/room_live/show.ex:31
+#: lib/readout_web/live/room_live/show.ex:165
 #, elixir-autogen, elixir-format
 msgid "Delete"
 msgstr ""
@@ -1319,8 +1342,9 @@ msgid "Delete “%{title}”?"
 msgstr ""
 
 #: lib/readout_web/live/document_live/analytics.ex:26
-#: lib/readout_web/live/document_live/link_components.ex:232
+#: lib/readout_web/live/document_live/link_components.ex:260
 #: lib/readout_web/live/document_live/show.ex:180
+#: lib/readout_web/live/room_live/show.ex:114
 #, elixir-autogen, elixir-format
 msgid "Document"
 msgstr ""
@@ -1390,6 +1414,7 @@ msgstr ""
 #: lib/readout_web/live/document_live/analytics.ex:27
 #: lib/readout_web/live/document_live/index.ex:131
 #: lib/readout_web/live/document_live/show.ex:188
+#: lib/readout_web/live/room_live/show.ex:53
 #, elixir-autogen, elixir-format
 msgid "Links"
 msgstr ""
@@ -1405,6 +1430,7 @@ msgid "List"
 msgstr ""
 
 #: lib/readout_web/live/document_live/show.ex:61
+#: lib/readout_web/live/room_live/show.ex:26
 #, elixir-autogen, elixir-format
 msgid "More actions"
 msgstr ""
@@ -1442,7 +1468,7 @@ msgid "Only the owner, the people below and admins."
 msgstr ""
 
 #: lib/readout_web/live/document_live/index.ex:278
-#: lib/readout_web/live/document_live/link_components.ex:75
+#: lib/readout_web/live/document_live/link_components.ex:103
 #, elixir-autogen, elixir-format
 msgid "Open"
 msgstr ""
@@ -1520,6 +1546,7 @@ msgid "Rename"
 msgstr ""
 
 #: lib/readout_web/document_labels.ex:44
+#: lib/readout_web/live/room_live/show.ex:40
 #, elixir-autogen, elixir-format
 msgid "Restricted"
 msgstr ""
@@ -1639,13 +1666,13 @@ msgstr ""
 msgid "Upload a PDF, Word or PowerPoint file to start sharing it. You can also drop files anywhere."
 msgstr ""
 
-#: lib/readout_web/components/layouts.ex:493
+#: lib/readout_web/components/layouts.ex:502
 #: lib/readout_web/live/document_live/index.ex:102
 #, elixir-autogen, elixir-format
 msgid "Upload a document"
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:299
+#: lib/readout_web/live/command_palette.ex:308
 #, elixir-autogen, elixir-format
 msgid "Upload document"
 msgstr ""
@@ -1671,7 +1698,7 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-#: lib/readout_web/live/document_live/show.ex:835
+#: lib/readout_web/live/document_live/show.ex:803
 #, elixir-autogen, elixir-format
 msgid "Version %{number} uploaded. Processing…"
 msgstr ""
@@ -1686,6 +1713,7 @@ msgstr ""
 #: lib/readout_web/live/document_live/analytics.ex:171
 #: lib/readout_web/live/document_live/analytics.ex:253
 #: lib/readout_web/live/document_live/analytics.ex:318
+#: lib/readout_web/live/room_live/show.ex:113
 #, elixir-autogen, elixir-format
 msgid "Viewer"
 msgstr ""
@@ -1711,33 +1739,33 @@ msgstr ""
 msgid "You can't upload documents."
 msgstr ""
 
-#: lib/readout_web/live/command_palette.ex:300
+#: lib/readout_web/live/command_palette.ex:309
 #, elixir-autogen, elixir-format
 msgid "new file pdf word powerpoint add"
 msgstr ""
 
 #: lib/readout_web/live/document_live/index.ex:435
-#: lib/readout_web/live/document_live/show.ex:808
+#: lib/readout_web/live/document_live/show.ex:776
 #, elixir-autogen, elixir-format
 msgid "“%{title}” was deleted."
 msgstr ""
 
-#: lib/readout_web/audit_labels.ex:90
+#: lib/readout_web/audit_labels.ex:96
 #, elixir-autogen, elixir-format
 msgid "%{actor} changed the «%{subject}» link for «%{document}»"
 msgstr ""
 
-#: lib/readout_web/audit_labels.ex:83
+#: lib/readout_web/audit_labels.ex:89
 #, elixir-autogen, elixir-format
 msgid "%{actor} created the «%{subject}» link for «%{document}»"
 msgstr ""
 
-#: lib/readout_web/audit_labels.ex:97
+#: lib/readout_web/audit_labels.ex:103
 #, elixir-autogen, elixir-format
 msgid "%{actor} disabled the «%{subject}» link for «%{document}»"
 msgstr ""
 
-#: lib/readout_web/audit_labels.ex:104
+#: lib/readout_web/audit_labels.ex:110
 #, elixir-autogen, elixir-format
 msgid "%{actor} enabled the «%{subject}» link for «%{document}»"
 msgstr ""
@@ -1762,7 +1790,7 @@ msgstr ""
 msgid "%{viewer} downloaded «%{subject}» via the «%{link}» link"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:215
+#: lib/readout_web/live/viewer_live.ex:266
 #, elixir-autogen, elixir-format
 msgid "%{workspace} shared a document with you"
 msgstr ""
@@ -1772,7 +1800,7 @@ msgstr ""
 msgid "%{workspace} shared “%{title}” with you. Enter this code to open it:"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:74
+#: lib/readout_web/live/viewer_live.ex:76
 #, elixir-autogen, elixir-format
 msgid "%{workspace} will see your email and how you read this document."
 msgstr ""
@@ -1782,38 +1810,38 @@ msgstr ""
 msgid "Accept the invitation"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:141
+#: lib/readout_web/live/document_live/link_components.ex:169
 #, elixir-autogen, elixir-format
 msgid "Access"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:236
+#: lib/readout_web/live/document_live/link_components.ex:264
 #, elixir-autogen, elixir-format
 msgid "Allow download"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:243
+#: lib/readout_web/live/document_live/link_components.ex:271
 #, elixir-autogen, elixir-format
 msgid "Also the original file"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:225
+#: lib/readout_web/live/document_live/link_components.ex:253
 #, elixir-autogen, elixir-format
 msgid "Always refused."
 msgstr ""
 
 #: lib/readout_web/audit_labels.ex:74
-#: lib/readout_web/notification_labels.ex:60
+#: lib/readout_web/notification_labels.ex:64
 #, elixir-autogen, elixir-format
 msgid "An anonymous viewer"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:197
+#: lib/readout_web/live/document_live/link_components.ex:225
 #, elixir-autogen, elixir-format
 msgid "Ask for an email"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:599
+#: lib/readout_web/live/viewer_live.ex:689
 #, elixir-autogen, elixir-format
 msgid "Ask the person who shared it for a new link."
 msgstr ""
@@ -1823,7 +1851,7 @@ msgstr ""
 msgid "Back to sign in"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:223
+#: lib/readout_web/live/document_live/link_components.ex:251
 #, elixir-autogen, elixir-format
 msgid "Block"
 msgstr ""
@@ -1860,18 +1888,18 @@ msgstr ""
 msgid "Confirm your new email address"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:70
+#: lib/readout_web/live/viewer_live.ex:72
 #, elixir-autogen, elixir-format
 msgid "Continue"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:19
+#: lib/readout_web/live/document_live/link_components.ex:47
 #, elixir-autogen, elixir-format
 msgid "Create a link for each person or group you share with, so you can see who read what."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:24
-#: lib/readout_web/live/document_live/link_components.ex:261
+#: lib/readout_web/live/document_live/link_components.ex:52
+#: lib/readout_web/live/document_live/link_components.ex:289
 #, elixir-autogen, elixir-format
 msgid "Create link"
 msgstr ""
@@ -1881,22 +1909,22 @@ msgstr ""
 msgid "Create link for “%{title}”"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:80
+#: lib/readout_web/live/document_live/link_components.ex:108
 #, elixir-autogen, elixir-format
 msgid "Created"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:34
+#: lib/readout_web/live/document_live/link_components.ex:62
 #, elixir-autogen, elixir-format
 msgid "Disabled"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:143
+#: lib/readout_web/live/viewer_live.ex:191
 #, elixir-autogen, elixir-format
 msgid "Download"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:56
+#: lib/readout_web/live/document_live/link_components.ex:84
 #, elixir-autogen, elixir-format
 msgid "Downloads allowed"
 msgstr ""
@@ -1906,27 +1934,27 @@ msgstr ""
 msgid "Email me a sign-in link instead"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:49
+#: lib/readout_web/live/document_live/link_components.ex:77
 #, elixir-autogen, elixir-format
 msgid "Email required"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:363
+#: lib/readout_web/live/viewer_live.ex:451
 #, elixir-autogen, elixir-format
 msgid "Email verification isn't available right now. Please contact the sender."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:217
+#: lib/readout_web/live/document_live/link_components.ex:245
 #, elixir-autogen, elixir-format
 msgid "Emails or domains, one per line. Empty allows anyone."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:64
+#: lib/readout_web/live/document_live/link_components.ex:92
 #, elixir-autogen, elixir-format
 msgid "Expires %{date}"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:154
+#: lib/readout_web/live/document_live/link_components.ex:182
 #, elixir-autogen, elixir-format
 msgid "Expires on"
 msgstr ""
@@ -1958,80 +1986,82 @@ msgstr ""
 msgid "If your email is in our system, you'll get a reset link shortly."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:597
+#: lib/readout_web/live/viewer_live.ex:687
 #, elixir-autogen, elixir-format
 msgid "It's being prepared. Please try again in a minute."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:171
+#: lib/readout_web/live/document_live/link_components.ex:199
 #, elixir-autogen, elixir-format
 msgid "Leave empty to keep the current one."
 msgstr ""
 
 #: lib/readout_web/live/document_live/analytics.ex:257
 #: lib/readout_web/live/document_live/analytics.ex:326
-#: lib/readout_web/live/document_live/link_components.ex:30
+#: lib/readout_web/live/document_live/link_components.ex:58
 #, elixir-autogen, elixir-format
 msgid "Link"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:89
+#: lib/readout_web/live/document_live/link_components.ex:117
 #, elixir-autogen, elixir-format
 msgid "Link copied"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:146
+#: lib/readout_web/live/document_live/link_components.ex:174
 #, elixir-autogen, elixir-format
 msgid "Link enabled"
 msgstr ""
 
-#: lib/readout_web/live/document_live/show.ex:692
+#: lib/readout_web/live/document_live/show.ex:660
+#: lib/readout_web/live/room_live/show.ex:338
 #, elixir-autogen, elixir-format
 msgid "Link saved."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:97
-#: lib/readout_web/live/document_live/link_components.ex:120
+#: lib/readout_web/live/document_live/link_components.ex:125
+#: lib/readout_web/live/document_live/link_components.ex:148
 #, elixir-autogen, elixir-format
 msgid "Link settings"
 msgstr ""
 
-#: lib/readout_web/live/document_live/show.ex:693
+#: lib/readout_web/live/document_live/show.ex:661
+#: lib/readout_web/live/room_live/show.ex:339
 #, elixir-autogen, elixir-format
 msgid "Link “%{name}” created. Copy it from the list."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:207
+#: lib/readout_web/live/document_live/link_components.ex:235
 #, elixir-autogen, elixir-format
 msgid "Needs email (SMTP) to be configured on the server."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:18
+#: lib/readout_web/live/document_live/link_components.ex:46
 #, elixir-autogen, elixir-format
 msgid "No links yet"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:215
+#: lib/readout_web/live/document_live/link_components.ex:243
 #, elixir-autogen, elixir-format
 msgid "Only allow"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:135
+#: lib/readout_web/live/document_live/link_components.ex:163
 #, elixir-autogen, elixir-format
 msgid "Only your team sees it, to tell links apart in analytics."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:179
+#: lib/readout_web/live/document_live/link_components.ex:207
 #, elixir-autogen, elixir-format
 msgid "Optional. Share it separately from the link."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:155
+#: lib/readout_web/live/document_live/link_components.ex:183
 #, elixir-autogen, elixir-format
 msgid "Optional. The link stops working at the end of that day."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:152
+#: lib/readout_web/live/viewer_live.ex:200
 #, elixir-autogen, elixir-format
 msgid "Original"
 msgstr ""
@@ -2041,22 +2071,22 @@ msgstr ""
 msgid "Password changed. Sign in with your new password."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:163
+#: lib/readout_web/live/document_live/link_components.ex:191
 #, elixir-autogen, elixir-format
 msgid "Password protected"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:578
+#: lib/readout_web/live/viewer_live.ex:668
 #, elixir-autogen, elixir-format
 msgid "Please enter a valid email address."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:42
+#: lib/readout_web/live/document_live/link_components.ex:70
 #, elixir-autogen, elixir-format
 msgid "Protection"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:165
+#: lib/readout_web/live/document_live/link_components.ex:193
 #, elixir-autogen, elixir-format
 msgid "Remove"
 msgstr ""
@@ -2072,7 +2102,7 @@ msgstr ""
 msgid "Reset your password"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:114
+#: lib/readout_web/live/viewer_live.ex:116
 #, elixir-autogen, elixir-format
 msgid "Send a new code"
 msgstr ""
@@ -2088,21 +2118,22 @@ msgid "Set new password"
 msgstr ""
 
 #: lib/readout_web/live/document_live/show.ex:36
+#: lib/readout_web/live/room_live/show.ex:22
 #, elixir-autogen, elixir-format
 msgid "Share"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:247
+#: lib/readout_web/live/viewer_live.ex:299
 #, elixir-autogen, elixir-format
 msgid "Shared document"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:201
+#: lib/readout_web/live/viewer_live.ex:249
 #, elixir-autogen, elixir-format
 msgid "Shared securely with Readout"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:251
+#: lib/readout_web/live/document_live/link_components.ex:279
 #, elixir-autogen, elixir-format
 msgid "Shows the viewer's email and the time over every page. A deterrent, not real protection."
 msgstr ""
@@ -2112,17 +2143,17 @@ msgstr ""
 msgid "Sign in to Readout"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:585
+#: lib/readout_web/live/viewer_live.ex:675
 #, elixir-autogen, elixir-format
 msgid "That code has expired. Send a new one."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:584
+#: lib/readout_web/live/viewer_live.ex:674
 #, elixir-autogen, elixir-format
 msgid "That code isn't right."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:577
+#: lib/readout_web/live/viewer_live.ex:667
 #, elixir-autogen, elixir-format
 msgid "That password isn't right."
 msgstr ""
@@ -2133,7 +2164,7 @@ msgstr ""
 msgid "That reset link is invalid or has expired."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:244
+#: lib/readout_web/live/document_live/link_components.ex:272
 #, elixir-autogen, elixir-format
 msgid "The Word or PowerPoint file as uploaded."
 msgstr ""
@@ -2148,42 +2179,42 @@ msgstr ""
 msgid "The link expires on %{date}."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:593
+#: lib/readout_web/live/viewer_live.ex:683
 #, elixir-autogen, elixir-format
 msgid "This document is almost ready"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:579
+#: lib/readout_web/live/viewer_live.ex:669
 #, elixir-autogen, elixir-format
 msgid "This email can't open this document."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:592
+#: lib/readout_web/live/viewer_live.ex:682
 #, elixir-autogen, elixir-format
 msgid "This link has expired"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:594
+#: lib/readout_web/live/viewer_live.ex:684
 #, elixir-autogen, elixir-format
 msgid "This link isn't available"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:582
+#: lib/readout_web/live/viewer_live.ex:672
 #, elixir-autogen, elixir-format
 msgid "Too many attempts. Please wait a few minutes and try again."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:586
+#: lib/readout_web/live/viewer_live.ex:676
 #, elixir-autogen, elixir-format
 msgid "Too many wrong codes. Send a new one."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:147
+#: lib/readout_web/live/document_live/link_components.ex:175
 #, elixir-autogen, elixir-format
 msgid "Turn off to stop it working right away."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:121
+#: lib/readout_web/live/viewer_live.ex:123
 #, elixir-autogen, elixir-format
 msgid "Use another email"
 msgstr ""
@@ -2193,44 +2224,44 @@ msgstr ""
 msgid "Use the button below to sign in. The link works once and expires in 15 minutes."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:99
+#: lib/readout_web/live/viewer_live.ex:101
 #, elixir-autogen, elixir-format
 msgid "Verification code"
 msgstr ""
 
 #: lib/readout_web/live/document_live/analytics.ex:185
-#: lib/readout_web/live/document_live/link_components.ex:53
+#: lib/readout_web/live/document_live/link_components.ex:81
 #, elixir-autogen, elixir-format
 msgid "Verified email"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:105
+#: lib/readout_web/live/viewer_live.ex:107
 #, elixir-autogen, elixir-format
 msgid "Verify and view"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:203
+#: lib/readout_web/live/document_live/link_components.ex:231
 #, elixir-autogen, elixir-format
 msgid "Verify the email"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:71
+#: lib/readout_web/live/viewer_live.ex:73
 #, elixir-autogen, elixir-format
 msgid "View document"
 msgstr ""
 
 #: lib/readout_web/live/document_live/analytics.ex:162
-#: lib/readout_web/live/document_live/link_components.ex:193
+#: lib/readout_web/live/document_live/link_components.ex:221
 #, elixir-autogen, elixir-format
 msgid "Viewers"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:237
+#: lib/readout_web/live/document_live/link_components.ex:265
 #, elixir-autogen, elixir-format
 msgid "Viewers can download the PDF."
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:198
+#: lib/readout_web/live/document_live/link_components.ex:226
 #, elixir-autogen, elixir-format
 msgid "Viewers enter their email before reading."
 msgstr ""
@@ -2238,23 +2269,24 @@ msgstr ""
 #: lib/readout_web/live/analytics_live.ex:42
 #: lib/readout_web/live/document_live/analytics.ex:98
 #: lib/readout_web/live/document_live/analytics.ex:194
-#: lib/readout_web/live/document_live/link_components.ex:79
+#: lib/readout_web/live/document_live/link_components.ex:107
+#: lib/readout_web/live/room_live/show.ex:98
 #, elixir-autogen, elixir-format
 msgid "Visits"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:59
-#: lib/readout_web/live/document_live/link_components.ex:249
+#: lib/readout_web/live/document_live/link_components.ex:87
+#: lib/readout_web/live/document_live/link_components.ex:277
 #, elixir-autogen, elixir-format
 msgid "Watermark"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:206
+#: lib/readout_web/live/document_live/link_components.ex:234
 #, elixir-autogen, elixir-format
 msgid "We email a 6-digit code, so analytics show a real identity."
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:86
+#: lib/readout_web/live/viewer_live.ex:88
 #, elixir-autogen, elixir-format
 msgid "We sent a 6-digit code to %{email}. It expires in 10 minutes."
 msgstr ""
@@ -2279,7 +2311,7 @@ msgstr ""
 msgid "Your Readout sign-in link"
 msgstr ""
 
-#: lib/readout_web/live/viewer_live.ex:52
+#: lib/readout_web/live/viewer_live.ex:54
 #, elixir-autogen, elixir-format
 msgid "Your email"
 msgstr ""
@@ -2289,7 +2321,7 @@ msgstr ""
 msgid "Your verification code"
 msgstr ""
 
-#: lib/readout_web/live/document_live/link_components.ex:134
+#: lib/readout_web/live/document_live/link_components.ex:162
 #, elixir-autogen, elixir-format
 msgid "e.g. Client X, Investors"
 msgstr ""
@@ -2297,6 +2329,7 @@ msgstr ""
 #: lib/readout_web/live/analytics_live.ex:106
 #: lib/readout_web/live/document_live/analytics.ex:422
 #: lib/readout_web/live/document_live/analytics.ex:557
+#: lib/readout_web/live/room_live/show.ex:106
 #, elixir-autogen, elixir-format
 msgid "%{count} visit"
 msgid_plural "%{count} visits"
@@ -2353,12 +2386,14 @@ msgstr ""
 
 #: lib/readout_web/live/analytics_live.ex:275
 #: lib/readout_web/live/document_live/analytics.ex:599
+#: lib/readout_web/live/room_live/show.ex:384
 #, elixir-autogen, elixir-format
 msgid "Anonymous"
 msgstr ""
 
 #: lib/readout_web/live/analytics_live.ex:276
 #: lib/readout_web/live/document_live/analytics.ex:600
+#: lib/readout_web/live/room_live/show.ex:385
 #, elixir-autogen, elixir-format
 msgid "Anonymous · %{place}"
 msgstr ""
@@ -2456,6 +2491,7 @@ msgid "No visits in this period."
 msgstr ""
 
 #: lib/readout_web/live/document_live/analytics.ex:339
+#: lib/readout_web/live/room_live/show.ex:117
 #, elixir-autogen, elixir-format
 msgid "No visits yet"
 msgstr ""
@@ -2478,6 +2514,7 @@ msgid "Reading now"
 msgstr ""
 
 #: lib/readout_web/live/document_live/analytics.ex:211
+#: lib/readout_web/live/room_live/show.ex:111
 #, elixir-autogen, elixir-format
 msgid "Recent visits"
 msgstr ""
@@ -2500,6 +2537,7 @@ msgstr ""
 #: lib/readout_web/live/document_live/analytics.ex:195
 #: lib/readout_web/live/document_live/analytics.ex:262
 #: lib/readout_web/live/document_live/analytics.ex:329
+#: lib/readout_web/live/room_live/show.ex:115
 #, elixir-autogen, elixir-format
 msgid "Time"
 msgstr ""
@@ -2511,6 +2549,7 @@ msgstr ""
 
 #: lib/readout_web/live/analytics_live.ex:49
 #: lib/readout_web/live/document_live/analytics.ex:108
+#: lib/readout_web/live/room_live/show.ex:99
 #, elixir-autogen, elixir-format
 msgid "Unique viewers"
 msgstr ""
@@ -2526,6 +2565,7 @@ msgid "Visit"
 msgstr ""
 
 #: lib/readout_web/live/document_live/analytics.ex:335
+#: lib/readout_web/live/room_live/show.ex:116
 #, elixir-autogen, elixir-format
 msgid "When"
 msgstr ""
@@ -2566,7 +2606,7 @@ msgstr ""
 msgid "vs previous 7 days"
 msgstr ""
 
-#: lib/readout_web/notification_labels.ex:54
+#: lib/readout_web/notification_labels.ex:58
 #, elixir-autogen, elixir-format
 msgid "%{email} (verified)"
 msgstr ""
@@ -2586,12 +2626,12 @@ msgstr ""
 msgid "Notify me about this document"
 msgstr ""
 
-#: lib/readout_web/notification_labels.ex:61
+#: lib/readout_web/notification_labels.ex:65
 #, elixir-autogen, elixir-format
 msgid "Someone in %{place}"
 msgstr ""
 
-#: lib/readout_web/live/document_live/show.ex:649
+#: lib/readout_web/live/document_live/show.ex:617
 #, elixir-autogen, elixir-format
 msgid "You won't get notifications for this document."
 msgstr ""
@@ -2606,27 +2646,27 @@ msgstr ""
 msgid "%{viewer} read %{seen} of %{count} pages of «%{title}» in %{time}"
 msgstr ""
 
-#: lib/readout_web/live/notifications_component.ex:110
+#: lib/readout_web/live/notifications_component.ex:117
 #, elixir-autogen, elixir-format
 msgid "Follow a document with the bell on its page to hear when it's read."
 msgstr ""
 
-#: lib/readout_web/live/notifications_component.ex:104
+#: lib/readout_web/live/notifications_component.ex:111
 #, elixir-autogen, elixir-format
 msgid "Mark all as read"
 msgstr ""
 
-#: lib/readout_web/notification_labels.ex:40
+#: lib/readout_web/notification_labels.ex:44
 #, elixir-autogen, elixir-format
 msgid "Most time on page %{n}"
 msgstr ""
 
-#: lib/readout_web/live/notifications_component.ex:109
+#: lib/readout_web/live/notifications_component.ex:116
 #, elixir-autogen, elixir-format
 msgid "No notifications yet"
 msgstr ""
 
-#: lib/readout_web/live/notifications_component.ex:135
+#: lib/readout_web/live/notifications_component.ex:155
 #, elixir-autogen, elixir-format
 msgid "Unread"
 msgstr ""
@@ -2641,7 +2681,191 @@ msgstr ""
 msgid "Version %{n} of «%{title}» is ready"
 msgstr ""
 
-#: lib/readout_web/live/document_live/show.ex:650
+#: lib/readout_web/live/document_live/show.ex:618
 #, elixir-autogen, elixir-format
 msgid "You'll be notified in Readout when someone reads this document."
+msgstr ""
+
+#: lib/readout_web/audit_labels.ex:83
+#, elixir-autogen, elixir-format
+msgid "%{actor} created the room «%{subject}»"
+msgstr ""
+
+#: lib/readout_web/audit_labels.ex:86
+#, elixir-autogen, elixir-format
+msgid "%{actor} deleted the room «%{subject}»"
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:64
+#, elixir-autogen, elixir-format
+msgid "%{count} document"
+msgid_plural "%{count} documents"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/readout_web/live/viewer_live.ex:139
+#: lib/readout_web/live/viewer_live.ex:264
+#, elixir-autogen, elixir-format
+msgid "%{workspace} shared these documents with you"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:63
+#: lib/readout_web/live/room_live/show.ex:123
+#, elixir-autogen, elixir-format
+msgid "Add documents"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:67
+#, elixir-autogen, elixir-format
+msgid "Add the documents you want to share together. Viewers see them in this order."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:100
+#, elixir-autogen, elixir-format
+msgid "Average time per document"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:103
+#, elixir-autogen, elixir-format
+msgid "By document"
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:36
+#, elixir-autogen, elixir-format
+msgid "Create a room, add documents, then share one link for all of them."
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:89
+#, elixir-autogen, elixir-format
+msgid "Create room"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:159
+#, elixir-autogen, elixir-format
+msgid "Delete “%{name}”?"
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:83
+#: lib/readout_web/live/room_live/show.ex:144
+#, elixir-autogen, elixir-format
+msgid "Description"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:28
+#: lib/readout_web/live/room_live/show.ex:141
+#, elixir-autogen, elixir-format
+msgid "Edit details"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:161
+#, elixir-autogen, elixir-format
+msgid "Its links stop working right away. The documents themselves are not deleted."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:89
+#, elixir-autogen, elixir-format
+msgid "Move down"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:88
+#, elixir-autogen, elixir-format
+msgid "Move up"
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:23
+#: lib/readout_web/live/room_live/index.ex:38
+#: lib/readout_web/live/room_live/index.ex:75
+#, elixir-autogen, elixir-format
+msgid "New room"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:66
+#, elixir-autogen, elixir-format
+msgid "No documents in this room"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:108
+#, elixir-autogen, elixir-format
+msgid "No documents in this room."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:128
+#, elixir-autogen, elixir-format
+msgid "No more documents you can share."
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:35
+#, elixir-autogen, elixir-format
+msgid "No rooms yet"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:83
+#, elixir-autogen, elixir-format
+msgid "Not ready yet: hidden from viewers until processed."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:150
+#, elixir-autogen, elixir-format
+msgid "Only me and admins"
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:84
+#, elixir-autogen, elixir-format
+msgid "Optional. Viewers see it above the list of documents."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:90
+#, elixir-autogen, elixir-format
+msgid "Remove from room"
+msgstr ""
+
+#: lib/readout_web/components/layouts.ex:320
+#: lib/readout_web/components/layouts.ex:511
+#: lib/readout_web/live/command_palette.ex:236
+#: lib/readout_web/live/room_live/index.ex:13
+#: lib/readout_web/live/room_live/index.ex:28
+#: lib/readout_web/live/room_live/index.ex:103
+#: lib/readout_web/live/room_live/show.ex:18
+#, elixir-autogen, elixir-format
+msgid "Rooms"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:125
+#, elixir-autogen, elixir-format
+msgid "Search your documents"
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:30
+#, elixir-autogen, elixir-format
+msgid "Share several documents behind one link: a deal, a board pack, an investor update."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:189
+#, elixir-autogen, elixir-format
+msgid "That room doesn't exist or you can't see it."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:224
+#, elixir-autogen, elixir-format
+msgid "This room is no longer available."
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:149
+#, elixir-autogen, elixir-format
+msgid "Who in the team can see it"
+msgstr ""
+
+#: lib/readout_web/live/command_palette.ex:237
+#, elixir-autogen, elixir-format
+msgid "data room folder share several"
+msgstr ""
+
+#: lib/readout_web/live/room_live/index.ex:79
+#, elixir-autogen, elixir-format
+msgid "e.g. Series A due diligence"
+msgstr ""
+
+#: lib/readout_web/live/room_live/show.ex:299
+#, elixir-autogen, elixir-format
+msgid "“%{name}” was deleted."
 msgstr ""

@@ -71,6 +71,10 @@ defmodule ReadoutWeb.Router do
       live "/documents/:id/links", DocumentLive.Show, :links
       live "/documents/:id/analytics", DocumentLive.Analytics, :index
       live "/analytics", AnalyticsLive, :index
+      live "/rooms", RoomLive.Index, :index
+      live "/rooms/:id", RoomLive.Show, :show
+      live "/rooms/:id/links", RoomLive.Show, :links
+      live "/rooms/:id/analytics", RoomLive.Show, :analytics
 
       live "/settings/profile", SettingsLive.Profile, :edit
       live "/settings/account", UserLive.Settings, :edit
@@ -117,6 +121,7 @@ defmodule ReadoutWeb.Router do
 
     live_session :viewer, on_mount: [{ReadoutWeb.Locale, :browser}] do
       live "/:slug", ViewerLive, :show
+      live "/:slug/d/:document_id", ViewerLive, :room_document
     end
 
     post "/:slug/access", ViewerAccessController, :create

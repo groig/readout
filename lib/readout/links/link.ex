@@ -6,6 +6,9 @@ defmodule Readout.Links.Link do
 
   Links always show the document's current version, so uploading a new
   version keeps every link working.
+
+  A link points to a document or to a room (`Readout.Rooms.Room`): a room link
+  opens an index of the room's documents behind the same gate.
   """
   use Ecto.Schema
   import Ecto.Changeset
@@ -36,6 +39,7 @@ defmodule Readout.Links.Link do
     field :visit_count, :integer, virtual: true, default: 0
 
     belongs_to :document, Readout.Documents.Document
+    belongs_to :room, Readout.Rooms.Room
     belongs_to :created_by, Readout.Accounts.User
 
     timestamps(type: :utc_datetime)
@@ -156,6 +160,13 @@ defmodule Readout.Links.Link do
   def generate_slug, do: 16 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
 
   def password?(%__MODULE__{password_hash: hash}), do: is_binary(hash)
+
+  def room?(%__MODULE__{room_id: id}), do: not is_nil(id)
+
+  @doc "What the link shares: the document's title or the room's name."
+  def title(%__MODULE__{room: %{name: name}}) when is_binary(name), do: name
+  def title(%__MODULE__{document: %{title: title}}) when is_binary(title), do: title
+  def title(_), do: ""
 
   def valid_password?(%__MODULE__{password_hash: hash}, password)
       when is_binary(hash) and is_binary(password),
