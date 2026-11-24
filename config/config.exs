@@ -7,6 +7,19 @@
 # General application configuration
 import Config
 
+config :readout, :scopes,
+  user: [
+    default: true,
+    module: Readout.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :binary_id,
+    schema_table: :users,
+    test_data_fixture: Readout.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
 config :readout,
   ecto_repos: [Readout.Repo],
   generators: [timestamp_type: :utc_datetime, binary_id: true]
@@ -35,6 +48,8 @@ config :phoenix_live_view,
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
 config :readout, Readout.Mailer, adapter: Swoosh.Adapters.Local
+# Dev uses the local mailbox (/dev/mailbox). Prod turns this on when SMTP_HOST is set.
+config :readout, :mail_enabled, true
 
 # Configure esbuild (the version is required)
 config :esbuild,
@@ -65,6 +80,12 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# IANA time zones (DST-correct local times for users)
+config :elixir, :time_zone_database, Tz.TimeZoneDatabase
+
+# Gettext: English is the source language, Spanish ships complete.
+config :readout, ReadoutWeb.Gettext, default_locale: "en", locales: ~w(en es)
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -55,6 +55,9 @@ config :readout, ReadoutWeb.Endpoint,
 # Enable dev routes for dashboard and mailbox
 config :readout, dev_routes: true
 
+# Allow the live-reload iframe under our strict CSP.
+config :readout, :csp_frame_src, "'self'"
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

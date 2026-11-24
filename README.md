@@ -1,18 +1,48 @@
 # Readout
 
-To start your Phoenix server:
+Readout is a self-hosted document sharing service with reading analytics. Upload a
+report, proposal or deck (PDF, Word, PowerPoint), share it through links, and see who opened it,
+which pages they read and for how long, live.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+It is free software, runs as one Docker Compose stack behind Caddy, and keeps every file and every
+analytics event on our own server. Nothing is sent to third parties.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+> Status: milestone 1 (foundation) is done: design system, app shell, accounts, roles,
+> invitations, members, audit log, profile, English and Spanish. Documents, links, the public
+> viewer, analytics and deployment follow. See `docs/ARCHITECTURE.md`.
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
+## Run it locally
 
-## Learn more
+Requirements: Elixir 1.17+ / OTP 27+, PostgreSQL, and (from milestone 2) `poppler-utils` and
+LibreOffice.
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+```sh
+mix setup                      # deps, database, assets
+mix run priv/repo/seeds.exs    # optional: a demo team
+mix phx.server                 # http://localhost:4000
+```
+
+On a fresh database, `/` sends you to the first-run setup screen, where you create the owner
+account. With seeds, sign in as `owner@readout.test` (also `admin@`, `member@`, `observer@`) with
+the password `readout-dev-password`.
+
+Useful dev pages (all under `/dev`, which production keeps tailnet-only):
+
+- `/dev/design` is the style guide: every token and component, in both themes.
+- `/dev/mailbox` shows the emails the app sent.
+- `/dev/dashboard` is Phoenix LiveDashboard.
+
+## Develop
+
+- Read `AGENTS.md` first: Phoenix, LiveView and HEEx rules, plus this project's own rules.
+- `mix precommit` compiles with warnings as errors, formats and runs the tests. Run it before
+  every commit.
+- UI strings go through Gettext. After changing them, run `mix gettext.extract --merge`, then
+  translate the new entries in `priv/gettext/es/LC_MESSAGES/*.po`.
+
+## Deploy
+
+The release Dockerfile, `compose.example.yml`, `/healthz` and the deployment guide arrive in
+milestone 5. Configuration will come only from environment variables: `DATABASE_URL`,
+`SECRET_KEY_BASE`, `PHX_HOST`, `STORAGE_PATH`, the `SMTP_*`/`MAIL_FROM*` settings and, optionally,
+`ROCKETCHAT_WEBHOOK_URL`.

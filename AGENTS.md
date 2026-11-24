@@ -1,5 +1,39 @@
 This is a web application written using the Phoenix web framework.
 
+## Readout project rules
+
+These rules were settled while building the app and take precedence over the generic guidance below.
+
+- **Authorization lives in `Readout.Policy` only.** Contexts call `Policy.authorize/3` before any
+  change; LiveViews call `Policy.can?/3` to hide UI. Never inline role checks elsewhere. Add new
+  actions to `test/readout/policy_test.exs` (role × action matrix).
+- **Context functions that act for someone take `%Scope{}` first.** Functions that end or change
+  sessions return the affected tokens; the caller runs `ReadoutWeb.UserAuth.disconnect_sessions/1`.
+- **Audit-worthy actions call `Readout.Audit.log/4`** inside the same context function, and get a
+  sentence in `ReadoutWeb.AuditLabels`.
+- **Layouts**: app pages use `<Layouts.app ... active={...}>` (with `:crumb`/`:actions` slots);
+  sign-in/setup/invitation screens use `<Layouts.auth>`. Settings pages render
+  `<Layouts.settings_nav>`.
+- **Design system only**: use the components and color tokens (`bg-surface`, `text-fg-muted`,
+  `border-border`, `bg-accent`...). The default Tailwind palette is disabled on purpose. When you add
+  or change a component, update `/dev/design` (`ReadoutWeb.Dev.DesignLive`).
+- **Motion**: use `duration-(--duration-fast|base|slow)` and `ease-(--ease-out|...)`; never hard-code
+  durations. Loading states are skeletons or the button shimmer, never spinners.
+- **Overlays**: dialogs and sheets are `<.dialog>`/`<.sheet>` (native `<dialog>`), opened with
+  `open_dialog/1` or `show`; close server-rendered ones by handling `on_close`. Dropdown items pass
+  `phx-click`/`phx-value-*` straight through.
+- **Keyboard shortcuts**: add `data-shortcut="g x"` (or `"mod+k"`, `"/"`) to any clickable element or
+  input; the shell's `.Shortcuts` hook handles it. List new shortcuts in the `?` sheet.
+- **Colocated hooks** referenced from a *dynamic* `phx-hook={...}` must use the full name
+  (`"ReadoutWeb.Module.Hook"`); the `.Hook` shorthand only expands in static attributes.
+- **CSP**: no inline `<script>` (except the nonce'd theme script in the root layout) and no inline
+  event handlers (`onclick=` etc.).
+- **i18n**: every user-facing string goes through Gettext; English is the source, `es` must stay
+  complete (`mix gettext.extract --merge`, then translate). Custom changeset messages are listed in
+  `ReadoutWeb.ErrorMessages`. Format numbers, durations and dates with `ReadoutWeb.Format`, which
+  follows the locale and the scope's time zone. The dev-only `/dev/design` page is the one exemption.
+- **Streams**: every child of a `phx-update="stream"` container needs an id, including empty states.
+
 ## Project guidelines
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
@@ -43,6 +77,67 @@ custom classes must fully style the input
 - Ensure **clean typography, spacing, and layout balance** for a refined, premium look
 - Focus on **delightful details** like hover effects, loading states, and smooth page transitions
 
+
+<!-- phoenix-gen-auth-start -->
+## Authentication
+
+- **Always** handle authentication flow at the router level with proper redirects
+- **Always** be mindful of where to place routes. `phx.gen.auth` creates multiple router plugs and `live_session` scopes:
+  - A plug `:fetch_current_scope_for_user` that is included in the default browser pipeline
+  - A plug `:require_authenticated_user` that redirects to the log in page when the user is not authenticated
+  - A `live_session :current_user` scope - for routes that need the current user but don't require authentication, similar to `:fetch_current_scope_for_user`
+  - A `live_session :require_authenticated_user` scope - for routes that require authentication, similar to the plug with the same name
+  - In both cases, a `@current_scope` is assigned to the Plug connection and LiveView socket
+  - A plug `redirect_if_user_is_authenticated` that redirects to a default path in case the user is authenticated - useful for a registration page that should only be shown to unauthenticated users
+- **Always let the user know in which router scopes, `live_session`, and pipeline you are placing the route, AND SAY WHY**
+- `phx.gen.auth` assigns the `current_scope` assign - it **does not assign a `current_user` assign**
+- Always pass the assign `current_scope` to context modules as first argument. When performing queries, use `current_scope.user` to filter the query results
+- To derive/access `current_user` in templates, **always use the `@current_scope.user`**, never use **`@current_user`** in templates or LiveViews
+- **Never** duplicate `live_session` names. A `live_session :current_user` can only be defined __once__ in the router, so all routes for the `live_session :current_user`  must be grouped in a single block
+- Anytime you hit `current_scope` errors or the logged in session isn't displaying the right content, **always double check the router and ensure you are using the correct plug and `live_session` as described below**
+
+### Routes that require authentication
+
+LiveViews that require login should **always be placed inside the __existing__ `live_session :require_authenticated_user` block**:
+
+    scope "/", AppWeb do
+      pipe_through [:browser, :require_authenticated_user]
+
+      live_session :require_authenticated_user,
+        on_mount: [{ReadoutWeb.UserAuth, :require_authenticated}] do
+        # phx.gen.auth generated routes
+        live "/users/settings", UserLive.Settings, :edit
+        live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+        # our own routes that require logged in user
+        live "/", MyLiveThatRequiresAuth, :index
+      end
+    end
+
+Controller routes must be placed in a scope that sets the `:require_authenticated_user` plug:
+
+    scope "/", AppWeb do
+      pipe_through [:browser, :require_authenticated_user]
+
+      get "/", MyControllerThatRequiresAuth, :index
+    end
+
+### Routes that work with or without authentication
+
+LiveViews that can work with or without authentication, **always use the __existing__ `:current_user` scope**, ie:
+
+    scope "/", MyAppWeb do
+      pipe_through [:browser]
+
+      live_session :current_user,
+        on_mount: [{ReadoutWeb.UserAuth, :mount_current_scope}] do
+        # our own routes that work with or without authentication
+        live "/", PublicLive
+      end
+    end
+
+Controllers automatically have the `current_scope` available if they use the `:browser` pipeline.
+
+<!-- phoenix-gen-auth-end -->
 
 <!-- usage-rules-start -->
 

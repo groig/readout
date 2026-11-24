@@ -107,3 +107,38 @@ msgstr ""
 
 msgid "must be equal to %{number}"
 msgstr ""
+
+#: lib/readout_web/error_messages.ex:17
+#, elixir-autogen, elixir-format
+msgid "already has a pending invitation"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:13
+#, elixir-autogen, elixir-format
+msgid "did not change"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:14
+#, elixir-autogen, elixir-format
+msgid "does not match password"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:16
+#, elixir-autogen, elixir-format
+msgid "is already a member"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:15
+#, elixir-autogen, elixir-format
+msgid "is not a valid time zone"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:18
+#, elixir-autogen, elixir-format
+msgid "must have the @ sign"
+msgstr ""
+
+#: lib/readout_web/error_messages.ex:12
+#, elixir-autogen, elixir-format
+msgid "must have the @ sign and no spaces"
+msgstr ""

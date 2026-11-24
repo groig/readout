@@ -84,12 +84,14 @@ defmodule ReadoutWeb do
 
       # HTML escaping functionality
       import Phoenix.HTML
-      # Core UI components
+      # Design system components (showcased at /dev/design)
       import ReadoutWeb.CoreComponents
+      import ReadoutWeb.OverlayComponents
+      import ReadoutWeb.ChartComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
-      alias ReadoutWeb.Layouts
+      alias ReadoutWeb.{Format, Layouts}
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())
