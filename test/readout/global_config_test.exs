@@ -15,6 +15,32 @@ defmodule Readout.GlobalConfigTest do
     on_exit(fn -> Application.put_env(:readout, key, previous) end)
   end
 
+  test "admin routes check the HTTP peer and the live connection" do
+    alias ReadoutWeb.AdminNetwork
+    put_env(:admin_networks, ["100.64.0.0/10", "fd7a:115c:a1e0::/48"])
+    outside = {203, 0, 113, 9}
+    inside = {100, 64, 0, 2}
+
+    for path <- ~w(/setup /settings/workspace /settings/audit /settings/members /dev/dashboard) do
+      conn = Plug.Test.conn(:get, path)
+      assert AdminNetwork.call(%{conn | remote_ip: outside}, []).status == 404
+      refute AdminNetwork.call(%{conn | remote_ip: inside}, []).halted
+    end
+
+    for path <- ~w(/users/log-in /settings/profile /v/public /invitations/token) do
+      refute AdminNetwork.call(%{Plug.Test.conn(:get, path) | remote_ip: outside}, []).halted
+    end
+
+    for {peer, expected} <- [{outside, :halt}, {inside, :cont}] do
+      socket = %Phoenix.LiveView.Socket{
+        transport_pid: self(),
+        private: %{connect_info: %{peer_data: %{address: peer}}}
+      }
+
+      assert {^expected, _} = AdminNetwork.on_mount(:default, %{}, %{}, socket)
+    end
+  end
+
   test "uploads above the size limit are refused" do
     put_env(
       Readout.Documents,

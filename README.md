@@ -120,3 +120,8 @@ Configuration (environment variables only):
 
 Readout is licensed under the GNU Affero General Public License, version 3 only
 (`AGPL-3.0-only`). See [LICENSE](LICENSE).
+
+Set `ADMIN_NETWORKS` to comma-separated client CIDRs when setup, workspace administration
+(members, audit and workspace settings) and internal tools require a private network.
+Apply the same restrictions at the reverse proxy. HTTP and connected LiveViews use
+the client address resolved through `TRUSTED_PROXIES`.

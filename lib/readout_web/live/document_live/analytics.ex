@@ -316,6 +316,7 @@ defmodule ReadoutWeb.DocumentLive.Analytics do
           </li>
         </ol>
       </.sheet>
+      <.geoip_credit />
     </Layouts.app>
     """
   end

@@ -4,6 +4,7 @@ defmodule ReadoutWeb.SetupLive do
   exists; afterwards people join through invitations.
   """
   use ReadoutWeb, :live_view
+  on_mount ReadoutWeb.AdminNetwork
 
   alias Readout.Accounts
 

@@ -314,6 +314,7 @@ defmodule ReadoutWeb.RoomLive.Show do
         mail_enabled={@mail_enabled}
         office?={office?(@room)}
       />
+      <.geoip_credit />
     </Layouts.app>
     """
   end

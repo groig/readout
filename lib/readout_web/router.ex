@@ -140,7 +140,7 @@ defmodule ReadoutWeb.Router do
 
     live_dashboard "/dashboard",
       metrics: ReadoutWeb.Telemetry,
-      on_mount: [{ReadoutWeb.UserAuth, {:can, :manage_members}}]
+      on_mount: [ReadoutWeb.AdminNetwork, {ReadoutWeb.UserAuth, {:can, :manage_members}}]
   end
 
   if Application.compile_env(:readout, :dev_routes) do

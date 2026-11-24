@@ -48,6 +48,7 @@ defmodule ReadoutWeb.Endpoint do
 
   # Real client IPs behind Caddy (only trusted proxies may set X-Forwarded-For).
   plug ReadoutWeb.ClientIP
+  plug ReadoutWeb.AdminNetwork
 
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]

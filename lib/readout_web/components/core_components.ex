@@ -1150,4 +1150,18 @@ defmodule ReadoutWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  def geoip_credit(assigns) do
+    ~H"""
+    <a
+      :if={Readout.GeoIP.database()}
+      href="https://db-ip.com"
+      class="underline-offset-2 hover:underline"
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      {gettext("IP geolocation by DB-IP")}
+    </a>
+    """
+  end
 end

@@ -1,6 +1,7 @@
 defmodule ReadoutWeb.SettingsLive.Audit do
   @moduledoc "Settings → Audit log (owners and admins). New entries appear live."
   use ReadoutWeb, :live_view
+  on_mount ReadoutWeb.AdminNetwork
 
   on_mount {ReadoutWeb.UserAuth, {:can, :view_audit_log}}
 

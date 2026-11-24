@@ -1,6 +1,7 @@
 defmodule ReadoutWeb.SettingsLive.Workspace do
   @moduledoc "Settings → Workspace (owners): name and ownership transfer."
   use ReadoutWeb, :live_view
+  on_mount ReadoutWeb.AdminNetwork
 
   on_mount {ReadoutWeb.UserAuth, {:can, :manage_workspace}}
 

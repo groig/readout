@@ -157,6 +157,7 @@ defmodule ReadoutWeb.NotificationsComponent do
             </button>
           </li>
         </ol>
+        <.geoip_credit />
       </.sheet>
     </div>
     """

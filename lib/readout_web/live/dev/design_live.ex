@@ -7,6 +7,7 @@ defmodule ReadoutWeb.Dev.DesignLive do
   Dev-only tool: its demo copy is English and intentionally not translated.
   """
   use ReadoutWeb, :live_view
+  on_mount ReadoutWeb.AdminNetwork
 
   @surfaces ~w(canvas sidebar surface raised inset hover active)
   @text ~w(fg fg-muted fg-subtle fg-faint)

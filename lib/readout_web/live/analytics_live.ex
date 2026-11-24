@@ -165,15 +165,7 @@ defmodule ReadoutWeb.AnalyticsLive do
 
       <p class="mt-8 text-xs text-fg-faint">
         {gettext("Locations are approximate, from the viewer's IP address.")}
-        <a
-          :if={Readout.GeoIP.database()}
-          href="https://db-ip.com"
-          class="underline-offset-2 hover:underline"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          {gettext("IP geolocation by DB-IP")}
-        </a>
+        <.geoip_credit />
       </p>
     </Layouts.app>
     """

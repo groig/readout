@@ -6,6 +6,7 @@ defmodule ReadoutWeb.SettingsLive.Members do
   allows). Changes from anyone show up live.
   """
   use ReadoutWeb, :live_view
+  on_mount ReadoutWeb.AdminNetwork
 
   on_mount {ReadoutWeb.UserAuth, {:can, :view_members}}
 

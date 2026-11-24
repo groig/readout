@@ -69,6 +69,13 @@ defmodule ReadoutWeb.ClientIP do
     end
   end
 
+  def allowed_admin_ip?(ip) do
+    case Application.get_env(:readout, :admin_networks) do
+      nil -> true
+      ranges -> Enum.any?(ranges, fn range -> in_range?(ip, parse_cidr(range)) end)
+    end
+  end
+
   defp trusted do
     Application.get_env(:readout, :trusted_proxies, ["127.0.0.0/8", "::1/128"])
     |> Enum.map(&parse_cidr/1)

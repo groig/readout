@@ -70,6 +70,10 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  if cidrs = System.get_env("ADMIN_NETWORKS") do
+    config :readout, :admin_networks, String.split(cidrs, ",", trim: true)
+  end
+
   host = System.get_env("PHX_HOST") || "example.com"
 
   config :readout, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
