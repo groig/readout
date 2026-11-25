@@ -2,11 +2,23 @@ defmodule ReadoutWeb.SetupLive do
   @moduledoc """
   First-run setup: creates the first owner. Only reachable while no account
   exists; afterwards people join through invitations.
+
+  On a fresh database whoever reaches this page first becomes the owner, so
+  in production it must be protected (`config :readout, :setup`):
+
+    * with `SETUP_TOKEN` set, the form asks for it as a setup code (compared
+      in constant time, rate-limited per client);
+    * otherwise, with `ADMIN_NETWORKS` set, only those networks reach it
+      (`ReadoutWeb.AdminNetwork`);
+    * with neither, setup is locked and says how to unlock it.
+
+  Development and tests leave it open (`require_authorization: false`).
   """
   use ReadoutWeb, :live_view
   on_mount ReadoutWeb.AdminNetwork
 
-  alias Readout.Accounts
+  alias Readout.{Accounts, RateLimit}
+  alias ReadoutWeb.ClientIP
 
   @impl true
   def render(assigns) do
@@ -19,7 +31,21 @@ defmodule ReadoutWeb.SetupLive do
         </p>
       </div>
 
+      <div
+        :if={@guard == :locked}
+        id="setup-locked"
+        class="rounded-lg border border-border bg-inset p-4 text-sm text-fg-muted"
+      >
+        <p class="font-medium text-fg">{gettext("Setup is locked")}</p>
+        <p class="mt-1">
+          {gettext(
+            "To create the owner account, set SETUP_TOKEN (or ADMIN_NETWORKS) on the server and restart Readout."
+          )}
+        </p>
+      </div>
+
       <.form
+        :if={@guard != :locked}
         for={@form}
         id="setup-form"
         phx-change="validate"
@@ -51,6 +77,18 @@ defmodule ReadoutWeb.SetupLive do
           autocomplete="new-password"
           required
         />
+        <.input
+          :if={@guard == :code}
+          id="setup-code"
+          name="setup_code"
+          value={@setup_code}
+          type="password"
+          label={gettext("Setup code")}
+          hint={gettext("The SETUP_TOKEN configured on the server.")}
+          autocomplete="off"
+          errors={@code_errors}
+          required
+        />
         <input type="hidden" name="user[remember_me]" value="true" />
         <.button type="submit" variant="primary" size="lg" class="w-full">
           {gettext("Create owner account")}
@@ -69,17 +107,63 @@ defmodule ReadoutWeb.SetupLive do
        socket
        |> assign(:page_title, gettext("Set up"))
        |> assign(:trigger_submit, false)
+       |> assign(guard: guard(), setup_code: "", code_errors: [])
+       |> assign(:client_key, connected?(socket) && ClientIP.from_socket(socket))
        |> assign_form(Accounts.change_setup())}
     end
   end
 
-  @impl true
-  def handle_event("validate", %{"user" => params}, socket) do
-    changeset = params |> Accounts.change_setup() |> Map.put(:action, :validate)
-    {:noreply, assign_form(socket, changeset, params)}
+  # How setup is protected right now (see the moduledoc).
+  defp guard do
+    config = Application.get_env(:readout, :setup, [])
+
+    cond do
+      is_binary(config[:token]) -> :code
+      not Keyword.get(config, :require_authorization, false) -> :open
+      Application.get_env(:readout, :admin_networks) -> :open
+      true -> :locked
+    end
   end
 
-  def handle_event("save", %{"user" => params}, socket) do
+  @impl true
+  def handle_event("validate", %{"user" => params} = all, socket) do
+    changeset = params |> Accounts.change_setup() |> Map.put(:action, :validate)
+
+    {:noreply,
+     socket
+     |> assign(:setup_code, all["setup_code"] || "")
+     |> assign_form(changeset, params)}
+  end
+
+  def handle_event("save", %{"user" => params} = all, socket) do
+    case check_code(socket, all["setup_code"]) do
+      :ok ->
+        create_owner(socket, params)
+
+      {:error, message} ->
+        {:noreply, assign(socket, setup_code: "", code_errors: [message])}
+    end
+  end
+
+  defp check_code(%{assigns: %{guard: :open}}, _code), do: :ok
+  defp check_code(%{assigns: %{guard: :locked}}, _code), do: {:error, gettext("Setup is locked")}
+
+  defp check_code(socket, code) do
+    expected = Application.get_env(:readout, :setup)[:token]
+
+    with :ok <- RateLimit.hit({:setup, socket.assigns.client_key}, 10, :timer.minutes(15)),
+         true <- is_binary(code) and Plug.Crypto.secure_compare(String.trim(code), expected) do
+      :ok
+    else
+      {:error, :rate_limited} ->
+        {:error, gettext("Too many attempts. Please wait a few minutes and try again.")}
+
+      false ->
+        {:error, gettext("That setup code isn't right.")}
+    end
+  end
+
+  defp create_owner(socket, params) do
     case Accounts.bootstrap_owner(params) do
       {:ok, _user} ->
         # Sign in through the session controller with the same credentials.

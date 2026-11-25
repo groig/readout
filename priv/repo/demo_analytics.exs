@@ -54,7 +54,7 @@ for _ <- 1..45 do
   link = Enum.random(links)
   {:ok, link} = Links.fetch_public_link(link.slug)
 
-  visit = Links.start_visit(link, %{email: email, email_verified: email != nil, ip: ip, user_agent: "Demo"})
+  visit = Links.start_visit!(link, %{email: email, email_verified: email != nil, ip: ip, user_agent: "Demo"})
   started = DateTime.add(DateTime.utc_now(), -:rand.uniform(30 * 24 * 3600), :second)
 
   # Most readers finish the first pages; fewer reach the end.

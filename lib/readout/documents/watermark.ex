@@ -6,14 +6,15 @@ defmodule Readout.Documents.Watermark do
   The text is the reader's email (or "anonymous"), the visit's start time and
   a short visit id, tiled diagonally (ImageMagick). Each image is rendered the
   first time a visit asks for it and cached on local disk; a daily job removes
-  old cache entries. PDF downloads of watermarked links are rebuilt from the
+  old cache entries. Renders go through `Readout.Documents.RenderQueue`: a
+  bounded number at once, and one per cache entry. PDF downloads of watermarked links are rebuilt from the
   watermarked pages (`Readout.Documents.PdfWriter`), so they carry it too.
 
   This survives screenshots of the images and leaked files, and traces a leak
   back to one visit. It doesn't stop someone from retyping the content.
   """
 
-  alias Readout.Documents.{Pdf, PdfWriter, Tools, Version}
+  alias Readout.Documents.{Pdf, PdfWriter, RenderQueue, Tools, Version}
   alias Readout.Links.Visit
   alias Readout.{Documents, Storage}
 
@@ -29,9 +30,7 @@ defmodule Readout.Documents.Watermark do
   def page_image(%Visit{} = visit, %Version{} = version, number, width) do
     dest = cache_path(visit, "p#{number}-#{width}.webp")
 
-    if File.regular?(dest) do
-      {:ok, dest}
-    else
+    cached(dest, fn ->
       with {:path, source} <- Storage.serve(Version.page_key(version, number, width)),
            :ok <- render(source, text(visit), dest, width) do
         {:ok, dest}
@@ -39,6 +38,18 @@ defmodule Readout.Documents.Watermark do
         {:error, _} = error -> error
         _ -> {:error, :not_found}
       end
+    end)
+  end
+
+  # The cached file, or a queued render of it (which checks the cache again:
+  # someone may have rendered it while this request waited).
+  defp cached(dest, render) do
+    if File.regular?(dest) do
+      {:ok, dest}
+    else
+      RenderQueue.run(dest, fn ->
+        if File.regular?(dest), do: {:ok, dest}, else: render.()
+      end)
     end
   end
 
@@ -49,9 +60,8 @@ defmodule Readout.Documents.Watermark do
   def pdf(%Visit{} = visit, %Version{} = version) do
     dest = cache_path(visit, "document.pdf")
 
-    if File.regular?(dest) do
-      {:ok, dest}
-    else
+    # One slot for the whole PDF; its pages render inside it.
+    cached(dest, fn ->
       width = Pdf.view_width()
       pages = Documents.list_pages(version)
 
@@ -71,12 +81,32 @@ defmodule Readout.Documents.Watermark do
            :ok <- PdfWriter.write(Enum.reverse(list), dest) do
         {:ok, dest}
       end
-    end
+    end)
   end
 
   @doc false
+  # ImageMagick runs in a scratch directory with copies of what it needs
+  # (tools can't see the storage directory or the cache, see `Tools`).
   def render(source, text, dest, width) do
     File.mkdir_p!(Path.dirname(dest))
+    job = Path.join(System.tmp_dir!(), "readout-wm-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(job)
+
+    try do
+      input = Path.join(job, "in" <> Path.extname(source))
+      output = Path.join(job, "out" <> Path.extname(dest))
+      File.cp!(source, input)
+
+      with :ok <- render_in(job, input, text, output, width) do
+        File.cp!(output, dest <> ".part")
+        File.rename(dest <> ".part", dest)
+      end
+    after
+      File.rm_rf(job)
+    end
+  end
+
+  defp render_in(job, source, text, dest, width) do
     # Scale the type and the tile with the image so thumbnails look the same.
     point = max(9, round(width * 0.015))
     tile_w = round(width * 0.4)
@@ -113,13 +143,13 @@ defmodule Readout.Documents.Watermark do
         "-composite",
         "-quality",
         quality,
-        # The format is explicit: the temporary ".part" name says nothing.
-        if(String.ends_with?(dest, ".jpg"), do: "jpg:", else: "webp:") <> dest <> ".part"
+        # The output format is explicit, whatever the name says.
+        if(String.ends_with?(dest, ".jpg"), do: "jpg:", else: "webp:") <> dest
       ]
       |> with_font()
 
-    case Tools.run(magick(), args) do
-      {:ok, _} -> File.rename(dest <> ".part", dest)
+    case Tools.run(magick(), args, cd: job) do
+      {:ok, _} -> :ok
       error -> error
     end
   end

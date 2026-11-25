@@ -83,10 +83,10 @@ defmodule ReadoutWeb.LinkLimitsTest do
       Notifications.mark_all_read(scope)
       {:ok, link} = Links.fetch_public_link(link.slug)
 
-      first = Links.start_visit(link, %{device_id: "dev-1"})
+      first = Links.start_visit!(link, %{device_id: "dev-1"})
       Process.sleep(5)
-      again = Links.start_visit(link, %{device_id: "dev-1"})
-      other = Links.start_visit(link, %{device_id: "dev-2"})
+      again = Links.start_visit!(link, %{device_id: "dev-1"})
+      other = Links.start_visit!(link, %{device_id: "dev-2"})
 
       assert Links.first_visit?(first)
       refute Links.first_visit?(again)

@@ -11,6 +11,8 @@ name: readout
 
 services:
   app:
+    # Deploy the digest you reviewed, not a moving tag:
+    #   image: ghcr.io/groig/readout@sha256:<digest>
     image: ghcr.io/groig/readout:latest
     restart: unless-stopped
     depends_on:
@@ -32,8 +34,20 @@ services:
       # Optional
       GEOIP_DB_PATH: /data/geoip/city.mmdb
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-100}
-      # Proxies allowed to set X-Forwarded-For / -Proto (Caddy's address range).
-      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      # Proxies allowed to set X-Forwarded-For / -Proto: Caddy's address only
+      # (e.g. 172.20.0.2/32, or the proxy network's subnet). Anything broader
+      # lets other containers forge client addresses.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:?set TRUSTED_PROXIES to Caddy's address}
+      # First-run setup: whoever opens /setup on an empty database becomes the
+      # owner, so it asks for this code (openssl rand -hex 16). Without it,
+      # only ADMIN_NETWORKS can reach setup; with neither, setup is locked.
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+      # Networks allowed to reach setup and workspace/members/audit settings
+      # (e.g. the tailnet: 100.64.0.0/10,fd7a:115c:a1e0::/48).
+      ADMIN_NETWORKS: ${ADMIN_NETWORKS:-}
+      # Document tools run in their own namespaces (no network, hidden
+      # storage) and refuse to run without them. See security_opt below.
+      TOOL_ISOLATION: required
     volumes:
       - storage:/data/storage
       # Optional GeoIP database (DB-IP Lite City, CC BY 4.0). See README.
@@ -43,6 +57,18 @@ services:
     # ports:
     #   - "127.0.0.1:4000:4000"
     networks: [readout, proxy]
+    # Containment: no capabilities, no privilege escalation, bounded memory
+    # and processes. The seccomp profile is Docker's default plus the
+    # namespace calls document tools need for their isolation (unshare,
+    # mount and the new mount API); see deploy/seccomp.json.
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./deploy/seccomp.json
+      # On AppArmor hosts (Debian, Ubuntu) docker-default denies mount:
+      # - apparmor=unconfined
+    mem_limit: ${APP_MEMORY:-4g}
+    pids_limit: 512
 
   db:
     image: postgres:17-alpine

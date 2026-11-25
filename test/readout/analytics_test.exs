@@ -19,7 +19,7 @@ defmodule Readout.AnalyticsTest do
 
   # A visit reading `pages` (%{page => seconds}).
   defp read(link, attrs, pages, started_ago_days \\ 0) do
-    visit = Links.start_visit(link, attrs)
+    visit = Links.start_visit!(link, attrs)
 
     started = DateTime.add(DateTime.utc_now(), -started_ago_days, :day)
     visit = visit |> Ecto.Changeset.change(started_at: started) |> Repo.update!()
@@ -125,7 +125,7 @@ defmodule Readout.AnalyticsTest do
 
   test "visits broadcast to subscribers", %{scope: scope, doc: doc, link: link} do
     Analytics.subscribe_document(scope, doc)
-    visit = Links.start_visit(link, %{})
+    visit = Links.start_visit!(link, %{})
     assert_receive {:analytics, :visit_started, %{visit_id: id}} when id == visit.id
     Links.end_visit(visit)
     assert_receive {:analytics, :visit_ended, _}

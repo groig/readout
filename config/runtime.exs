@@ -70,6 +70,21 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  # First-run setup must be protected: with SETUP_TOKEN it asks for that code;
+  # without it, only ADMIN_NETWORKS may reach it; with neither, it's locked.
+  setup_token = System.get_env("SETUP_TOKEN")
+
+  if setup_token && String.length(setup_token) < 16 do
+    raise "SETUP_TOKEN must be at least 16 characters (e.g. openssl rand -hex 16)"
+  end
+
+  config :readout, :setup, require_authorization: true, token: setup_token
+
+  # Who besides the container itself may call /healthz (CIDRs).
+  if cidrs = System.get_env("HEALTH_NETWORKS") do
+    config :readout, :health_networks, String.split(cidrs, ",", trim: true)
+  end
+
   if cidrs = System.get_env("ADMIN_NETWORKS") do
     config :readout, :admin_networks, String.split(cidrs, ",", trim: true)
   end
@@ -100,7 +115,16 @@ if config_env() == :prod do
 
   config :readout, Readout.Documents,
     max_upload_bytes: String.to_integer(System.get_env("MAX_UPLOAD_MB") || "100") * 1024 * 1024,
-    tool_timeout: String.to_integer(System.get_env("TOOL_TIMEOUT") || "180")
+    tool_timeout: String.to_integer(System.get_env("TOOL_TIMEOUT") || "180"),
+    tool_memory_mb: String.to_integer(System.get_env("TOOL_MEMORY_MB") || "2048"),
+    tool_file_mb: String.to_integer(System.get_env("TOOL_FILE_MB") || "2048"),
+    # Converters never run without isolation unless explicitly allowed.
+    isolation:
+      (case System.get_env("TOOL_ISOLATION", "required") do
+         "required" -> :required
+         "preferred" -> :preferred
+         other -> raise "TOOL_ISOLATION must be required or preferred, got #{inspect(other)}"
+       end)
 
   # Reverse proxies allowed to set X-Forwarded-For (CIDRs, comma-separated).
   # Defaults cover loopback and the private ranges Docker networks use.

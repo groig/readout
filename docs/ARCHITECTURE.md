@@ -57,8 +57,9 @@ Storage keys: `documents/<id>/v<n>/original.<ext>`, `…/document.pdf`, `…/pag
 
 Upload (LiveView live upload, auto-upload, any page via the shell's drop overlay) →
 `Documents.create_document/2` detects the format **by magic bytes** (`FileType`: `%PDF-`; ZIP with
-`word/document.xml` / `ppt/presentation.xml`; ODF `mimetype`), enforces the size limit, stores
-the original and inserts an Oban job **in the same transaction**.
+`word/document.xml` / `ppt/presentation.xml`; ODF's stored `mimetype` entry, read from the first
+local header without decompressing anything), enforces the size limit, stores the original and
+inserts an Oban job **in the same transaction**.
 
 `ProcessVersion` (queue `documents`, concurrency 2, 3 attempts) in a throwaway temp dir:
 
@@ -70,17 +71,37 @@ the original and inserts an Oban job **in the same transaction**.
 4. `pdftotext -layout`: per-page text (split on form feeds), NUL bytes stripped.
 5. Pages are written, the version is marked ready, and becomes current if newer.
 
-Every tool runs through `Documents.Tools.run/3`: coreutils `timeout` (default 180 s, then
-SIGKILL) and, when the kernel allows unprivileged user namespaces, `unshare --net` so converters
-have **no network**. Permanent errors (bad file, password-protected PDF) fail immediately; others
-retry. Status changes are broadcast; the UI updates live.
+Every tool runs through `Documents.Tools.run/3`, which treats the document as hostile:
+
+- coreutils `timeout` (default 180 s, then SIGKILL);
+- `prlimit`: data segment (`TOOL_MEMORY_MB`, 2048), CPU seconds, largest file written
+  (`TOOL_FILE_MB`, 2048), open files, no core dumps;
+- a minimal environment (`PATH`, `HOME`, `TMPDIR`, `LANG`): `DATABASE_URL`, `SECRET_KEY_BASE` and
+  SMTP credentials never reach a tool;
+- `unshare` into new user, network, PID and mount namespaces: **no network**; the app's process
+  environments are unreadable and its processes can't be signalled (another user namespace);
+  and empty tmpfs mounts over the storage directory, the watermark cache and the release, so a
+  tool sees its job directory and the system only. `/proc` isn't remounted (Docker forbids it
+  unless its `/proc` masks are lifted), so tools can list the app's processes but not read them.
+
+Isolation needs unprivileged user namespaces; it's probed once. With `TOOL_ISOLATION=required`
+(production's default) a tool never runs without it and the job fails; development and tests use
+`:preferred` (warn and run). In Docker the default seccomp profile blocks `unshare` and `mount`:
+`deploy/seccomp.json` is Docker's default profile plus those calls, including the new mount API
+that current `mount` uses. AppArmor hosts also need `apparmor=unconfined`, since `docker-default`
+denies `mount`. Verified on the release image: with the profile, tools see only loopback, empty
+storage and release directories, a minimal environment, and no app environment; with Docker's
+defaults they refuse to run. Permanent errors (bad file,
+password-protected PDF) fail immediately; others retry. Status changes are broadcast; the UI
+updates live.
 
 ## Links and the public viewer (milestone 3)
 
 - **links**: `slug` (128 random bits, URL-safe), name, enabled, `expires_at`, bcrypt
   `password_hash`, `require_email`, `require_verification` (implies the email gate; needs SMTP),
   `allow_list` / `deny_list` (emails or domains; the deny list wins), `allow_download`,
-  `allow_original_download`, `watermark`. Links always show the document's current version.
+  `allow_original_download`, `watermark`, and `access_revision`. Links always show the
+  document's current version.
 - **link_verifications**: 6-digit codes from a CSPRNG, stored as `HMAC(link_id, code)`; valid
   10 minutes; 5 attempts; one use. Sends are limited (3 per email and link per 15 minutes, 10 per
   client).
@@ -92,19 +113,35 @@ retry. Status changes are broadcast; the UI updates live.
 gate (password and/or email, rate-limited per link and client IP) → code (if verification) →
 grant. The LiveView can't write cookies, so it hands a 2-minute signed grant token to
 `ViewerAccessController` (via `phx-trigger-action`), which stores the grant in the session
-(keyed by link and stamped with a time: changing the link's settings invalidates older grants)
-and, for verified emails, sets a signed `rv_<slug>` cookie for 30 days (path-scoped to the link).
-Returning devices skip the code.
+(keyed by link) and, for verified emails, sets a signed `rv_<slug>` cookie for 30 days
+(path-scoped to the link). Returning devices skip the code.
+
+**Access revisions.** `links.access_revision` is bumped (atomically, in the same transaction) by
+any change to who gets in or what they can do: everything but the name and the notification
+setting. The gate's grant token, the session grant and every page token carry the revision they
+were issued under, and each is honoured only while it is still current, so a new password or
+allow list invalidates them all, even within the same second. The gate, the code and resending it
+re-read the link first; an open gate reloads when the link changes.
+
+**Revocation.** `Links.check_access/4` re-checks against the current state that the link is
+viewable, its revision unchanged, the document still shared (a room may have dropped it) and the
+visit's version still current. It guards every public read: page images and downloads (each
+request), room navigation, and every spreadsheet event (rows are served from the LiveView). Open
+viewers also subscribe to their link's document or room events and re-check on each, and on every
+10-second tick while reading (which catches expiry). When access is gone the page reloads, and
+mount decides again: the gate, "unavailable", or the new version.
 
 **Page images** come from `/v/:slug/p/:token/:n/:width`, where the token is a `Phoenix.Token`
-bound to the visit (2 hours). Every request re-checks the link, so disabling or expiring it cuts
-access immediately. Downloads use the same token, require `allow_download`, and are audited with
-the viewer's email.
+bound to the visit and the revision (2 hours). Downloads use the same token, require
+`allow_download`, and are audited with the viewer's email.
 
 **Watermark** (burned in): for links with `watermark`, `Documents.Watermark` tiles the reader's
 email, the visit's start time and a short visit id diagonally into every page image and thumbnail
 (ImageMagick, rendered on first request and cached per visit under `cache_dir`, pruned daily by an
-Oban cron job). PDF downloads of such links are rebuilt from the watermarked pages as JPEGs by
+Oban cron job). Renders go through `Documents.RenderQueue`: at most `:watermark_concurrency`
+(schedulers by default) at once, one per cache entry (others wait and find it cached), and a
+request that waits more than 30 s gets a 503. Watermarked PDF downloads are also limited to 10
+per client every 10 minutes. PDF downloads of such links are rebuilt from the watermarked pages as JPEGs by
 `Documents.PdfWriter` (a minimal PDF writer, no dependency), and original files are never offered.
 Spreadsheets, rendered as HTML tables, keep a CSS overlay. It survives screenshots and leaked files
 and traces them to one visit; it can't stop someone retyping the content.
@@ -158,7 +195,9 @@ A version's `kind` is `:pages` (documents) or `:sheets` (`xlsx`, `ods`, `csv`). 
 Calc (formula results, workbook order from its output); CSV is read directly
 (`Documents.Sheets`: an RFC 4180 parser, delimiter sniffed from `, ; tab`, Latin-1 fallback).
 Each sheet is stored as JSON (`sheets/<n>.json`: header, rows, numeric columns detected from
-values like `1.234,5`, `12%`, `(45)`), capped at 20,000 rows × 200 columns. Each sheet is a
+values like `1.234,5`, `12%`, `(45)`), capped at 20,000 rows × 200 columns × 1,000 characters per
+cell. The caps apply while reading: at most `:sheet_max_mb` (32) of CSV is read per sheet, and the
+parser slices fields out of the input and stops one row past the limit. Each sheet is a
 "page": its text is indexed for search, and reading time is tracked per sheet (the server sets
 the page when the reader switches tabs). `ReadoutWeb.SheetView` holds the viewer state (sheet,
 row page, table or chart) for both the document page and the public viewer. CSV files are
@@ -170,8 +209,10 @@ recognised by name (`.csv`) plus a text check, since they have no signature.
 one). People are counted like unique viewers: by device id, then email, then IP. `Links.admits?/2`
 lets in anyone who already has a visit on the link (same device or same email), otherwise only
 while the count is below the limit. The viewer checks it at mount, or after the gate for links
-that ask for an email (so a known reader on a new device gets back in). Two strangers arriving at
-the same instant can exceed the limit by one; it's a courtesy limit, not a lock.
+that ask for an email (so a known reader on a new device gets back in). The check that counts is
+in `Links.start_visit/2`: for limited links, admission and the new visit happen in one
+transaction under a per-link advisory lock, so two strangers racing for the last slot get exactly
+one admission (the other sees "already used").
 
 `links.notify_first_only` makes `Notifications.DeliverJob` skip visits that aren't the viewer's
 first through that link (`Links.first_visit?/1`).
@@ -222,7 +263,23 @@ the document are notified.
   Liberation, DejaVu, Noto), tini as init, a non-root `readout` user, `/data` volume, and a
   `HEALTHCHECK` on `/healthz`.
 - `bin/server` runs migrations, then starts the release.
-- `ReadoutWeb.Plugs.Health` answers `/healthz` before sessions and logging (database + storage).
+- `ReadoutWeb.Plugs.Health` answers `/healthz` before sessions and logging (database + storage),
+  but only to the container itself (a loopback peer with no `X-Forwarded-For`) or
+  `HEALTH_NETWORKS`; everyone else gets a 404 before any work. Caddy also answers 404.
+- **First-run setup** is protected in production: with `SETUP_TOKEN` it asks for that code
+  (constant-time compare, 10 tries per 15 minutes per client); without it only `ADMIN_NETWORKS`
+  reaches `/setup`; with neither it's locked and says how to unlock it.
+- **Request logs** never contain paths, which carry credentials (share slugs, viewer, sign-in,
+  reset, invitation and email-change tokens). Phoenix's request log is off
+  (`Plug.Telemetry, log: false`) and `ReadoutWeb.RequestLog` logs the method, the route template
+  (`/v/:slug/p/:token/:number/:width`), the status and the duration. Parameters that may be
+  logged at debug level are filtered (`password token grant code setup_code slug`). The example
+  Caddyfile has no access log; if you add one, drop the URI.
+- **Release image**: OTP 28.5.0.9 or later (TLS client certificate validation fix) on a recent
+  Debian snapshot, with pending security updates applied at build time. CI actions are pinned to
+  commits; deploy the image by digest.
+- **Compose** drops all capabilities, sets `no-new-privileges`, bounds memory and processes, uses
+  `deploy/seccomp.json`, and requires `TRUSTED_PROXIES` to name Caddy.
 - Behind Caddy: `ReadoutWeb.ClientIP` trusts `X-Forwarded-For` and `X-Forwarded-Proto` only from
   `TRUSTED_PROXIES`, so client IPs are real and cookies are `Secure` (session cookies are always
   `Secure` in production).
@@ -305,8 +362,10 @@ milestone 3.)
   `Referrer-Policy` (`no-referrer` on the viewer), `Permissions-Policy`, `X-Robots-Tag: noindex`
   on the viewer; HSTS from Caddy.
 - Rate limits: gate attempts (10 per 10 min per link and client), code sends (3 per email and link
-  per 15 min, 10 per client), code checks (20 per 10 min), sign-in and reset emails (5 per address
-  per 15 min).
+  per 15 min, 10 per client), code checks (20 per 10 min), password sign-in (checked before
+  bcrypt: 30 per 15 min per client, 10 per account, the same answer for known and unknown
+  accounts), sign-in and reset emails (5 per address per 15 min), setup codes (10 per 15 min per
+  client), watermarked PDF downloads (10 per 10 min per client).
 - Secrets at rest: passwords and link passwords (bcrypt), invitation tokens (SHA-256), session and
   email tokens (hashed, from phx.gen.auth), verification codes (HMAC), queued emails (encrypted
   with `SECRET_KEY_BASE`).

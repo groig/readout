@@ -1,9 +1,9 @@
 # This file is based on these images:
 #
 #   - https://hub.docker.com/r/hexpm/elixir/tags - for the builder image
-#     E.g.: docker.io/hexpm/elixir:1.19.5-erlang-28.3.1-debian-trixie-20260610-slim
-#   - https://hub.docker.com/_/debian/tags?name=trixie-20260610-slim - for the runner image
-#     E.g.: docker.io/debian:trixie-20260610-slim
+#     E.g.: docker.io/hexpm/elixir:1.19.7-erlang-28.5.0.9-debian-trixie-20261123-slim
+#   - https://hub.docker.com/_/debian/tags?name=trixie-20261123-slim - for the runner image
+#     E.g.: docker.io/debian:trixie-20261123-slim
 #
 # Find builder and runner images on Docker Hub or on Hex's Build Server (Bob).
 # We recommend using Bob's Web UI to find recent tags:
@@ -17,9 +17,12 @@
 #
 # For finding packages in Debian, search on https://packages.debian.org/.
 
-ARG ELIXIR_VERSION=1.19.5
-ARG OTP_VERSION=28.3.1
-ARG DEBIAN_VERSION=trixie-20260610-slim
+# OTP 28.5.0.9 or later: earlier OTP 28 releases have a TLS 1.2 client
+# certificate-validation flaw (matters for SMTP with STARTTLS). Keep the
+# Debian snapshot recent too; the runner also applies pending security updates.
+ARG ELIXIR_VERSION=1.19.7
+ARG OTP_VERSION=28.5.0.9
+ARG DEBIAN_VERSION=trixie-20261123-slim
 
 ARG BUILDER_IMAGE="docker.io/hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="docker.io/debian:${DEBIAN_VERSION}"
@@ -82,9 +85,10 @@ FROM ${RUNNER_IMAGE} AS final
 # PowerPoint files look right: Carlito and Caladea stand in for Calibri and
 # Cambria; Liberation for Arial, Times and Courier; DejaVu and Noto cover the rest.
 RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
   && apt-get install -y --no-install-recommends \
     libstdc++6 openssl libncurses6 locales ca-certificates tini curl \
-    poppler-utils webp imagemagick fontconfig \
+    poppler-utils webp imagemagick fontconfig util-linux mount \
     libreoffice-writer-nogui libreoffice-impress-nogui libreoffice-calc-nogui \
     fonts-crosextra-carlito fonts-crosextra-caladea \
     fonts-liberation fonts-liberation2 fonts-dejavu-core fonts-noto-core \

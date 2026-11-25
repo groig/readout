@@ -10,8 +10,10 @@ defmodule Readout.Documents.FileType do
     * CSV has no signature: a `.csv`/`.tsv` file is accepted when its start is
       text (valid UTF-8 or Latin-1, no NUL bytes).
 
-  Only the ZIP's central directory and the tiny `mimetype` entry are read, so
-  archive bombs are not expanded.
+  Only the ZIP's central directory and the first local header are read, and
+  nothing is decompressed: OpenDocument files must start with an uncompressed
+  `mimetype` entry, which is read straight from the file (at most 100 bytes),
+  so archive bombs are never expanded.
   """
 
   @pdf_magic "%PDF-"
@@ -75,7 +77,7 @@ defmodule Readout.Documents.FileType do
         MapSet.member?(names, "word/document.xml") -> {:ok, :docx}
         MapSet.member?(names, "ppt/presentation.xml") -> {:ok, :pptx}
         MapSet.member?(names, "xl/workbook.xml") -> {:ok, :xlsx}
-        MapSet.member?(names, "mimetype") -> detect_odf(charpath)
+        MapSet.member?(names, "mimetype") -> detect_odf(path)
         true -> unsupported()
       end
     else
@@ -83,11 +85,24 @@ defmodule Readout.Documents.FileType do
     end
   end
 
-  defp detect_odf(charpath) do
-    case :zip.extract(charpath, [{:file_list, [~c"mimetype"]}, :memory]) do
-      {:ok, [{_, "application/vnd.oasis.opendocument.text" <> _}]} -> {:ok, :odt}
-      {:ok, [{_, "application/vnd.oasis.opendocument.presentation" <> _}]} -> {:ok, :odp}
-      {:ok, [{_, "application/vnd.oasis.opendocument.spreadsheet" <> _}]} -> {:ok, :ods}
+  # The first local file header must be the stored (method 0) "mimetype"
+  # entry; its data follows the header.
+  @odf_types %{
+    "application/vnd.oasis.opendocument.text" => :odt,
+    "application/vnd.oasis.opendocument.presentation" => :odp,
+    "application/vnd.oasis.opendocument.spreadsheet" => :ods
+  }
+
+  defp detect_odf(path) do
+    with {:ok,
+          <<@zip_magic, _version::little-16, _flags::little-16, 0::little-16, _time::little-32,
+            _crc::little-32, size::little-32, size::little-32, 8::little-16, extra::little-16,
+            "mimetype", rest::binary>>} <- read_head(path, 30 + 8 + 1024),
+         true <- size <= 100,
+         <<_extra::binary-size(extra), mimetype::binary-size(size), _::binary>> <- rest,
+         {:ok, format} <- Map.fetch(@odf_types, mimetype) do
+      {:ok, format}
+    else
       _ -> unsupported()
     end
   end

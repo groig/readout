@@ -26,4 +26,19 @@ defmodule Readout.Documents.FileTypeTest do
     assert FileType.detect(tmp) == {:error, :unsupported}
     assert FileType.detect("/nonexistent/file") == {:error, :unsupported}
   end
+
+  test "never expands a compressed mimetype entry (archive bombs)" do
+    tmp = Path.join(System.tmp_dir!(), "bomb-#{System.unique_integer([:positive])}.odt")
+    on_exit(fn -> File.rm(tmp) end)
+
+    # 64 MB of "text" that deflates to a few KB.
+    huge = "application/vnd.oasis.opendocument.text" <> :binary.copy("0", 64 * 1024 * 1024)
+    {:ok, _} = :zip.create(String.to_charlist(tmp), [{~c"mimetype", huge}])
+    assert File.stat!(tmp).size < 1_000_000
+
+    {:memory, before} = Process.info(self(), :memory)
+    assert FileType.detect(tmp) == {:error, :unsupported}
+    {:memory, after_} = Process.info(self(), :memory)
+    assert after_ - before < 10_000_000
+  end
 end

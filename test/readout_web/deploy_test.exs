@@ -10,6 +10,14 @@ defmodule ReadoutWeb.DeployTest do
     assert get_resp_header(conn, "cache-control") == ["no-store"]
   end
 
+  test "GET /healthz answers only the container itself" do
+    proxied = build_conn() |> put_req_header("x-forwarded-for", "198.51.100.7") |> get("/healthz")
+    assert response(proxied, 404) == "Not found"
+
+    outside = %{build_conn() | remote_ip: {172, 18, 0, 5}} |> get("/healthz")
+    assert response(outside, 404)
+  end
+
   test "HTTPS from a trusted proxy marks the request secure" do
     conn =
       build_conn(:get, "/healthz")

@@ -76,8 +76,10 @@ GitHub Actions tests and builds pull requests. A successful push to `main` publi
 tags such as `v1.2.3` publish a matching `1.2.3` image. After the first publication,
 the maintainer must set the GHCR package visibility to **Public** to allow anonymous pulls.
 
-1. Copy `compose.example.yml`, `.env.example` (as `.env`) and `deploy/Caddyfile.example` into the
-   infra repo and fill in the secrets (`mix phx.gen.secret` for `SECRET_KEY_BASE`).
+1. Copy `compose.example.yml`, `.env.example` (as `.env`), `deploy/Caddyfile.example` and
+   `deploy/seccomp.json` into the infra repo and fill in the secrets (`mix phx.gen.secret` for
+   `SECRET_KEY_BASE`, `openssl rand -hex 16` for `SETUP_TOKEN`). Set `TRUSTED_PROXIES` to Caddy's
+   address on the proxy network.
 2. Optional, for viewer locations: download DB-IP Lite City (free, CC BY 4.0) into `./geoip/` and
    refresh it monthly:
 
@@ -86,21 +88,29 @@ the maintainer must set the GHCR package visibility to **Public** to allow anony
    ```
 
 3. `docker compose -f compose.example.yml up -d --pull always`. Migrations run on every boot.
-4. Open `https://$PHX_HOST/`: the first visit shows the setup screen for the owner account.
+4. Open `https://$PHX_HOST/`: the first visit shows the setup screen for the owner account. It
+   asks for `SETUP_TOKEN` (or, without one, only `ADMIN_NETWORKS` can reach it; with neither it
+   stays locked). Remove `SETUP_TOKEN` once the owner exists.
 
-To pin a deployment, replace `latest` in Compose with the published commit tag. To build
+To pin a deployment, replace `latest` in Compose with the digest you reviewed
+(`ghcr.io/groig/readout@sha256:…`) or at least the published commit tag. To build
 from a source checkout, run `docker build -t readout:local .`, set the Compose app image
 to `readout:local`, and start it with `docker compose -f compose.example.yml up -d`.
 
 Operations:
 
-- Health: `GET /healthz` (database and storage), also used by the image's `HEALTHCHECK`.
+- Health: `GET /healthz` (database and storage) for the image's `HEALTHCHECK`. It answers only
+  the container itself (or `HEALTH_NETWORKS`); Caddy answers 404 for it.
 - Data: the `storage` volume (files) and the `db` volume (Postgres). Back up both.
 - Internal tools under `/dev/*` (LiveDashboard, owners and admins only) are tailnet-only in Caddy.
-- Logs go to stdout. `docker compose exec app bin/readout remote` opens a console.
-- Document conversion runs without network access where the kernel allows unprivileged user
-  namespaces; Docker's default seccomp profile usually doesn't, and Readout then logs a warning and
-  relies on LibreOffice's own lockdown (no macros, a fresh profile, a timeout).
+- Logs go to stdout. Request lines show route templates (`GET /v/:slug 200 in 8ms`), never paths,
+  which carry share links and tokens. `docker compose exec app bin/readout remote` opens a console.
+- Document conversion is contained: no network, its own user, PID and mount namespaces (stored files
+  hidden, the app's environment unreadable), a minimal environment, and memory, CPU and file-size limits. It needs unprivileged user
+  namespaces: Compose uses `deploy/seccomp.json` (Docker's default plus `unshare` and `mount`) and,
+  on AppArmor hosts, `apparmor=unconfined`. Without them, conversions fail rather than run
+  uncontained (`TOOL_ISOLATION=preferred` overrides that, at your own risk). Check with
+  `docker compose exec app bin/readout eval 'IO.inspect Readout.Documents.Tools.network_isolation?()'`.
 
 Configuration (environment variables only):
 
@@ -113,8 +123,12 @@ Configuration (environment variables only):
 | `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD` | no | email (Office 365: `smtp.office365.com`, STARTTLS); without it invitations are copy-only and links can't verify emails |
 | `MAIL_FROM`, `MAIL_FROM_NAME` (`Readout`) | no | sender |
 | `GEOIP_DB_PATH` | no | MaxMind DB file (e.g. DB-IP Lite City) for viewer locations |
-| `TRUSTED_PROXIES` | no | CIDRs allowed to set `X-Forwarded-For` / `-Proto` (default: loopback + private ranges) |
-| `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s), `POOL_SIZE` (10) | no | limits |
+| `TRUSTED_PROXIES` | yes in Compose | CIDRs allowed to set `X-Forwarded-For` / `-Proto`: Caddy only (app default: loopback + private ranges) |
+| `SETUP_TOKEN` | for first-run setup | code the setup screen asks for (16+ characters) |
+| `ADMIN_NETWORKS` | no | CIDRs allowed to reach setup, members, audit and workspace settings |
+| `HEALTH_NETWORKS` | no | CIDRs besides the container itself allowed to call `/healthz` |
+| `TOOL_ISOLATION` (`required`) | no | `preferred` lets document tools run without namespaces |
+| `MAX_UPLOAD_MB` (100), `TOOL_TIMEOUT` (180 s), `TOOL_MEMORY_MB` (2048), `TOOL_FILE_MB` (2048), `POOL_SIZE` (10) | no | limits |
 
 ## License
 

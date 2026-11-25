@@ -56,7 +56,7 @@ defmodule Readout.NotificationsTest do
 
   test "opening and finishing a visit notify followers, live", %{scope: scope, link: link} do
     Notifications.subscribe(scope)
-    visit = Links.start_visit(link, %{email: "ana@client.com", email_verified: true})
+    visit = Links.start_visit!(link, %{email: "ana@client.com", email_verified: true})
     deliver_all()
 
     assert_receive {:notification, _id}
@@ -78,7 +78,7 @@ defmodule Readout.NotificationsTest do
   end
 
   test "an empty visit sends no summary", %{scope: scope, link: link} do
-    visit = Links.start_visit(link, %{})
+    visit = Links.start_visit!(link, %{})
     :ok = Links.end_visit(visit)
     deliver_all()
     assert Enum.map(visits(scope), & &1.kind) == ["visit_opened"]
@@ -86,7 +86,7 @@ defmodule Readout.NotificationsTest do
 
   test "muted documents stay quiet", %{scope: scope, doc: doc, link: link} do
     {:ok, _} = Notifications.set_subscription(scope, doc, false)
-    _ = Links.start_visit(link, %{})
+    _ = Links.start_visit!(link, %{})
     deliver_all()
     assert visits(scope) == []
   end
@@ -101,7 +101,7 @@ defmodule Readout.NotificationsTest do
   end
 
   test "notifications read well in each person's language", %{scope: scope, link: link} do
-    _ = Links.start_visit(link, %{email: "ana@client.com", email_verified: true})
+    _ = Links.start_visit!(link, %{email: "ana@client.com", email_verified: true})
     deliver_all()
     [n] = visits(scope)
 
@@ -113,9 +113,9 @@ defmodule Readout.NotificationsTest do
   end
 
   test "anonymous viewers count by device, not by IP", %{scope: scope, doc: doc, link: link} do
-    Links.start_visit(link, %{ip: "1.2.3.4", device_id: "device-one-aaaaaaa"})
-    Links.start_visit(link, %{ip: "1.2.3.4", device_id: "device-two-bbbbbbb"})
-    Links.start_visit(link, %{ip: "1.2.3.4", device_id: "device-two-bbbbbbb"})
+    Links.start_visit!(link, %{ip: "1.2.3.4", device_id: "device-one-aaaaaaa"})
+    Links.start_visit!(link, %{ip: "1.2.3.4", device_id: "device-two-bbbbbbb"})
+    Links.start_visit!(link, %{ip: "1.2.3.4", device_id: "device-two-bbbbbbb"})
 
     assert Analytics.overview(scope, doc).unique == 2
     assert [_, _] = Analytics.viewers(scope, doc)

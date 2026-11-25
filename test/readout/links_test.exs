@@ -206,7 +206,7 @@ defmodule Readout.LinksTest do
       {:ok, link} = Links.fetch_public_link(link.slug)
 
       visit =
-        Links.start_visit(link, %{
+        Links.start_visit!(link, %{
           email: "a@b.com",
           email_verified: true,
           ip: "1.2.3.4",

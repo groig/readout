@@ -16,7 +16,7 @@ defmodule ReadoutWeb.NotificationsComponentTest do
     refute has_element?(lv, "#notifications-unread")
 
     {:ok, link} = Links.fetch_public_link(link.slug)
-    visit = Links.start_visit(link, %{email: "ana@client.com"})
+    visit = Links.start_visit!(link, %{email: "ana@client.com"})
 
     for job <- all_enqueued(worker: Readout.Notifications.DeliverJob),
         do: perform_job(Readout.Notifications.DeliverJob, job.args)

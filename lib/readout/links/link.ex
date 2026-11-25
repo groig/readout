@@ -30,6 +30,8 @@ defmodule Readout.Links.Link do
     field :watermark, :boolean, default: false
     field :max_viewers, :integer
     field :notify_first_only, :boolean, default: false
+    # Bumped by `Readout.Links.update_link/4` when access rules change.
+    field :access_revision, :integer, default: 1
 
     # Form-only fields.
     field :password, :string, virtual: true, redact: true
@@ -106,6 +108,18 @@ defmodule Readout.Links.Link do
 
     validate_number(changeset, :max_viewers, greater_than: 0, less_than: 100_000)
   end
+
+  # Changes that don't affect who gets in or what they can do.
+  @cosmetic ~w(name notify_first_only password remove_password allow_list_text deny_list_text
+               one_time)a
+
+  @doc """
+  Whether a changeset changes the link's access rules (anything but its name
+  and notification setting). Such changes invalidate every grant and page
+  token issued before.
+  """
+  def access_changed?(%Ecto.Changeset{changes: changes}),
+    do: changes |> Map.keys() |> Enum.any?(&(&1 not in @cosmetic))
 
   @doc "Whether the link only lets its first viewer in."
   def one_time?(%__MODULE__{max_viewers: 1}), do: true

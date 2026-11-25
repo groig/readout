@@ -120,8 +120,8 @@ defmodule Readout.RoomsTest do
     assert length(link.room.documents) == 3
 
     [deck, fin | _] = link.room.documents
-    v1 = Links.start_visit(link, %{document: deck, email: "a@vc.com"})
-    v2 = Links.start_visit(link, %{document: fin, email: "a@vc.com"})
+    v1 = Links.start_visit!(link, %{document: deck, email: "a@vc.com"})
+    v2 = Links.start_visit!(link, %{document: fin, email: "a@vc.com"})
     assert v1.document_id == deck.id and v2.document_id == fin.id
     Analytics.record(v1, %{1 => 10_000}, %{1 => 1}, 1)
 

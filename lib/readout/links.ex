@@ -86,7 +86,7 @@ defmodule Readout.Links do
     with :ok <- Policy.authorize(scope, edit_action(target), target),
          :ok <- same_target(target, link),
          changeset = change_link(link, attrs),
-         {:ok, updated} <- Repo.update(changeset) do
+         {:ok, updated} <- update_and_revise(changeset) do
       action =
         case Ecto.Changeset.get_change(changeset, :enabled) do
           false -> "link.disabled"
@@ -106,6 +106,27 @@ defmodule Readout.Links do
 
       notify(target)
       {:ok, updated}
+    end
+  end
+
+  # Access changes bump the revision in the same transaction, atomically (two
+  # concurrent edits get two revisions), so every grant and page token issued
+  # under the old rules stops working.
+  defp update_and_revise(changeset) do
+    if Link.access_changed?(changeset) do
+      Repo.transaction(fn ->
+        with {:ok, updated} <- Repo.update(changeset) do
+          {1, [revision]} =
+            from(l in Link, where: l.id == ^updated.id, select: l.access_revision)
+            |> Repo.update_all(inc: [access_revision: 1])
+
+          %{updated | access_revision: revision}
+        else
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+      end)
+    else
+      Repo.update(changeset)
     end
   end
 
@@ -144,6 +165,52 @@ defmodule Readout.Links do
       not Link.room?(link) and is_nil(link.document.current_version) -> {:error, :not_ready}
       true -> {:ok, link}
     end
+  end
+
+  @doc """
+  Re-checks, against the current state, that a reader may still read a
+  document through a link. Every public read (page images, downloads, sheets,
+  room navigation) goes through this, so revoking access takes effect on the
+  next request:
+
+    * the link is still viewable (enabled, not expired, not deleted);
+    * its access rules haven't changed since `revision` was issued;
+    * it still shares the document (a room may have dropped it);
+    * `version_id` is still the document's current version.
+
+  Returns the fresh link and document.
+  """
+  def check_access(slug, revision, document_id, version_id) do
+    with {:ok, link} <- fetch_public_link(slug),
+         true <- link.access_revision == revision || {:error, :changed},
+         %Document{} = document <- shared_document(link, document_id) || {:error, :removed},
+         true <- current_version?(document, version_id) || {:error, :new_version} do
+      {:ok, link, document}
+    end
+  end
+
+  defp current_version?(%Document{current_version: %{id: id, status: :ready}}, id), do: true
+  defp current_version?(_document, _version_id), do: false
+
+  @doc "The document a link shares with this id (one of its room's, for room links)."
+  def shared_document(%Link{room: %Room{documents: documents}}, id),
+    do: Enum.find(documents, &(&1.id == id))
+
+  def shared_document(%Link{document: %Document{id: id} = document}, id), do: document
+  def shared_document(_link, _id), do: nil
+
+  @doc """
+  Subscribes a viewer's process to changes that can affect what a link
+  shows: `{:document_updated, id}` (and other document events) for its
+  documents, `{:room_updated, id}` for its room. Messages carry ids only; the
+  viewer re-checks with `check_access/4`.
+  """
+  def subscribe_viewer(%Link{room_id: nil, document_id: id}),
+    do: Phoenix.PubSub.subscribe(Readout.PubSub, "documents:#{id}")
+
+  def subscribe_viewer(%Link{}) do
+    Phoenix.PubSub.subscribe(Readout.PubSub, "rooms")
+    Phoenix.PubSub.subscribe(Readout.PubSub, "documents")
   end
 
   # A room link shows only documents that are ready.
@@ -310,8 +377,42 @@ defmodule Readout.Links do
   @doc """
   Starts a visit once the viewer is through the gate. For room links, pass
   the document being read as `:document`.
+
+  For links with a viewer limit, admission and the visit are one step: a
+  per-link lock serializes them, so two new readers racing for the last slot
+  can't both get in. Returns `{:error, :used_up}` for the one that loses.
   """
+  def start_visit(%Link{max_viewers: nil} = link, attrs) do
+    {:ok, link |> insert_visit(attrs) |> announce_visit()}
+  end
+
   def start_visit(%Link{} = link, attrs) do
+    Repo.transaction(fn ->
+      Repo.query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", ["link:" <> link.id])
+
+      if admits?(link, %{device_id: attrs[:device_id], email: attrs[:email]}),
+        do: insert_visit(link, attrs),
+        else: Repo.rollback(:used_up)
+    end)
+    |> case do
+      {:ok, visit} -> {:ok, announce_visit(visit)}
+      error -> error
+    end
+  end
+
+  @doc "Like `start_visit/2`, raising when the link is used up (seeds and tests)."
+  def start_visit!(link, attrs) do
+    {:ok, visit} = start_visit(link, attrs)
+    visit
+  end
+
+  defp announce_visit(visit) do
+    visit
+    |> tap(&Readout.Analytics.broadcast(:visit_started, &1))
+    |> tap(&Readout.Notifications.visit_started/1)
+  end
+
+  defp insert_visit(link, attrs) do
     now = DateTime.utc_now()
     location = Readout.GeoIP.lookup(attrs[:ip]) || %{country_code: nil, country: %{}, city: %{}}
     document = attrs[:document] || link.document
@@ -334,8 +435,6 @@ defmodule Readout.Links do
       page_count: version && version.page_count
     }
     |> Repo.insert!()
-    |> tap(&Readout.Analytics.broadcast(:visit_started, &1))
-    |> tap(&Readout.Notifications.visit_started/1)
   end
 
   def get_visit(id) do

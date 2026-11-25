@@ -3,14 +3,18 @@ defmodule ReadoutWeb.ViewerAccess do
   How a viewer's access to a link is remembered and how page URLs are signed.
 
     * **Grants** live in the session (`"viewer_grants"`, by link id) once the
-      gate is passed. A grant older than the link's last change is ignored, so
-      changing a password or the allow list sends everyone back to the gate.
+      gate is passed. Every grant (the gate's short-lived token and the
+      session entry) carries the link's `access_revision` it was issued
+      under; when the link's rules change the revision moves on, so changing
+      a password or the allow list sends everyone back to the gate, even
+      within the same second.
     * **Verified emails** are remembered on the device for 30 days in a signed
       cookie per link (`rv_<slug>`), so returning viewers skip the code.
     * **Devices**: a random id per browser and link (`rd_<slug>`), to count
       anonymous viewers by device rather than by IP.
-    * **Page and download URLs** carry a `Phoenix.Token` bound to the visit,
-      valid for two hours.
+    * **Page and download URLs** carry a `Phoenix.Token` bound to the visit
+      and the revision, valid for two hours. Each request re-checks the link
+      (`Readout.Links.check_access/4`).
   """
   import Plug.Conn
 
@@ -81,6 +85,7 @@ defmodule ReadoutWeb.ViewerAccess do
   def sign_grant(%Link{} = link, email, verified?) do
     Phoenix.Token.sign(ReadoutWeb.Endpoint, @grant_salt, %{
       "link_id" => link.id,
+      "rev" => link.access_revision,
       "email" => email,
       "verified" => verified?
     })
@@ -90,22 +95,20 @@ defmodule ReadoutWeb.ViewerAccess do
     do: Phoenix.Token.verify(ReadoutWeb.Endpoint, @grant_salt, token, max_age: 120)
 
   @doc "The session grant for a link, if still valid."
-  def grant(session, %Link{} = link) do
-    with %{} = grants <- session["viewer_grants"],
-         %{"at" => at} = grant <- grants[link.id],
-         true <- at >= DateTime.to_unix(link.updated_at) do
-      grant
-    else
+  def grant(session, %Link{id: id, access_revision: revision}) do
+    case session["viewer_grants"] do
+      %{^id => %{"rev" => ^revision} = grant} -> grant
       _ -> nil
     end
   end
 
-  def put_grant(conn, link_id, email, verified?) do
+  def put_grant(conn, %Link{} = link, email, verified?) do
     grants =
       (get_session(conn, "viewer_grants") || %{})
-      |> Map.put(link_id, %{
+      |> Map.put(link.id, %{
         "email" => email,
         "verified" => verified?,
+        "rev" => link.access_revision,
         "at" => System.os_time(:second)
       })
       # Keep the session cookie small.
@@ -118,8 +121,17 @@ defmodule ReadoutWeb.ViewerAccess do
 
   ## Page URLs
 
-  def sign_visit(visit_id), do: Phoenix.Token.sign(ReadoutWeb.Endpoint, @page_salt, visit_id)
+  def sign_visit(visit_id, revision) when is_integer(revision),
+    do: Phoenix.Token.sign(ReadoutWeb.Endpoint, @page_salt, [visit_id, revision])
 
-  def verify_visit(token),
-    do: Phoenix.Token.verify(ReadoutWeb.Endpoint, @page_salt, token, max_age: @page_max_age)
+  @doc "Returns `{:ok, visit_id, revision}`."
+  def verify_visit(token) do
+    case Phoenix.Token.verify(ReadoutWeb.Endpoint, @page_salt, token, max_age: @page_max_age) do
+      {:ok, [visit_id, revision]} when is_binary(visit_id) and is_integer(revision) ->
+        {:ok, visit_id, revision}
+
+      _ ->
+        :error
+    end
+  end
 end

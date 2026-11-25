@@ -69,6 +69,14 @@ defmodule ReadoutWeb.ClientIP do
     end
   end
 
+  @doc "Whether an IP is inside a CIDR string."
+  def in_cidr?(ip, cidr) do
+    case parse_cidr(cidr) do
+      nil -> false
+      range -> in_range?(ip, range)
+    end
+  end
+
   def allowed_admin_ip?(ip) do
     case Application.get_env(:readout, :admin_networks) do
       nil -> true

@@ -55,3 +55,7 @@ config :readout, Readout.Storage,
 
 # Tests use generated databases (Readout.GeoIPFixture), never the dev one.
 config :readout, :geoip_db_path, nil
+
+# Every test request comes from 127.0.0.1: only the per-account login limit
+# applies (the client limit is tested in GlobalConfigTest).
+config :readout, :login_limits, client: 1_000_000, account: 10

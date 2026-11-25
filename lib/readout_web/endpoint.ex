@@ -51,7 +51,8 @@ defmodule ReadoutWeb.Endpoint do
   plug ReadoutWeb.AdminNetwork
 
   plug Plug.RequestId
-  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+  # Paths carry credentials: ReadoutWeb.RequestLog logs route templates instead.
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint], log: false
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],

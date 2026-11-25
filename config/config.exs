@@ -66,7 +66,13 @@ config :readout, Readout.Documents,
   # Uploads larger than this are rejected (MAX_UPLOAD_MB in production).
   max_upload_bytes: 100 * 1024 * 1024,
   # Seconds before an external tool (LibreOffice, pdftoppm...) is killed.
-  tool_timeout: 180
+  tool_timeout: 180,
+  # Memory and largest file a tool may write (see Readout.Documents.Tools).
+  tool_memory_mb: 2048,
+  tool_file_mb: 2048,
+  # Namespaces (no network, hidden storage): :required in production (tools
+  # refuse to run without them), :preferred here (warn and run anyway).
+  isolation: :preferred
 
 # Configure the mailer
 #
@@ -106,6 +112,10 @@ config :tailwind,
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
+
+# Never log credentials that arrive as parameters (paths are covered by
+# ReadoutWeb.RequestLog, which logs route templates only).
+config :phoenix, :filter_parameters, ~w(password token grant code setup_code slug)
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

@@ -27,6 +27,24 @@ defmodule Readout.Documents.SheetsTest do
     assert Sheets.parse_csv(<<"ciudad\nM", 0xE1, "laga\n">>) == [["ciudad"], ["Málaga"]]
   end
 
+  test "limits apply while parsing: rows, cells per row, characters per cell" do
+    wide = Enum.map_join(1..1_000, ",", &Integer.to_string/1)
+    [row] = Sheets.parse_csv(wide)
+    assert length(row) == 200
+
+    [[long]] = Sheets.parse_csv(~s("#{String.duplicate("x", 50_000)}"))
+    assert String.length(long) == 1_000
+
+    many = String.duplicate("a,b\n", 30_000)
+    assert length(Sheets.parse_csv(many)) == 20_002
+
+    # Edge cases of the slicing parser.
+    assert Sheets.parse_csv("a,b,\n1,2,") == [["a", "b", ""], ["1", "2", ""]]
+    assert Sheets.parse_csv(~s("unterminated,x)) == [["unterminated,x"]]
+    assert Sheets.parse_csv(~s("a"junk,b)) == [["ajunk", "b"]]
+    assert Sheets.parse_csv("") == []
+  end
+
   test "parses numbers as people write them" do
     assert Sheets.parse_number("1.234,56") == 1234.56
     assert Sheets.parse_number("1,234.56") == 1234.56

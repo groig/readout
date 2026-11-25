@@ -93,7 +93,7 @@ defmodule ReadoutWeb.RoomLiveTest do
     {:ok, _} = Rooms.add_document(scope, room, deck)
     {:ok, link} = Links.create_link(scope, room, %{"name" => "x"})
     {:ok, link} = Links.fetch_public_link(link.slug)
-    visit = Links.start_visit(link, %{document: hd(link.room.documents), email: "a@b.com"})
+    visit = Links.start_visit!(link, %{document: hd(link.room.documents), email: "a@b.com"})
 
     {:ok, lv, _} = live(conn, ~p"/rooms/#{room.id}/analytics")
     assert has_element?(lv, "#room-visit-#{visit.id}")

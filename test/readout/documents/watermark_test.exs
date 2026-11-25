@@ -29,8 +29,8 @@ defmodule Readout.Documents.WatermarkTest do
       )
 
     {:ok, link} = Links.fetch_public_link(link.slug)
-    visit = Links.start_visit(link, %{email: "ana@client.com"})
-    {link, visit, ViewerAccess.sign_visit(visit.id)}
+    visit = Links.start_visit!(link, %{email: "ana@client.com"})
+    {link, visit, ViewerAccess.sign_visit(visit.id, link.access_revision)}
   end
 
   test "watermarked links serve images with the visit burned in", %{

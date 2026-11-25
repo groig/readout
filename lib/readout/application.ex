@@ -7,6 +7,8 @@ defmodule Readout.Application do
 
   @impl true
   def start(_type, _args) do
+    ReadoutWeb.RequestLog.attach()
+
     children = [
       ReadoutWeb.Telemetry,
       Readout.Repo,
@@ -14,6 +16,7 @@ defmodule Readout.Application do
       {Phoenix.PubSub, name: Readout.PubSub},
       {Oban, Application.fetch_env!(:readout, Oban)},
       Readout.RateLimit,
+      Readout.Documents.RenderQueue,
       ReadoutWeb.Presence,
       # Start a worker by calling: Readout.Worker.start_link(arg)
       # {Readout.Worker, arg},

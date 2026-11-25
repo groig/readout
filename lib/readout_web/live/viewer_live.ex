@@ -8,6 +8,11 @@ defmodule ReadoutWeb.ViewerLive do
   `:code` (waiting for the emailed code), `:room` (a room's index) and
   `:reading`. A visit starts when the reader is connected, through the gate
   and reading a document; in a room, each document read is its own visit.
+
+  Access is re-checked against the current state (`Links.check_access/4`)
+  on every navigation and sheet event, every tick while reading, and when
+  the link, its document or its room changes (PubSub). When it's gone, or
+  the link's rules changed, the page reloads and mount decides again.
   """
   use ReadoutWeb, :live_view
 
@@ -322,7 +327,7 @@ defmodule ReadoutWeb.ViewerLive do
       |> assign(:workspace, Readout.Workspace.get_settings())
       |> assign(:page_title, gettext("Shared document"))
       |> assign(gate_error: nil, grant_token: nil, visit: nil, visit_token: nil, tracker: nil)
-      |> assign(document: nil, version: nil, access: nil)
+      |> assign(document: nil, version: nil, access: nil, current_path: "/v/" <> slug)
       |> stream_configure(:pages, dom_id: &"page-#{&1.number}")
       |> stream_configure(:thumbs, dom_id: &"thumb-#{&1.number}")
       |> assign(:client_key, client_key(socket))
@@ -342,6 +347,8 @@ defmodule ReadoutWeb.ViewerLive do
            (link.require_email and is_nil(email)) ||
              Links.admits?(link, %{device_id: device_id, email: email}) ||
              {:error, :used_up} do
+      if connected?(socket), do: Links.subscribe_viewer(link)
+
       {:ok,
        socket
        |> assign(:link, link)
@@ -384,10 +391,26 @@ defmodule ReadoutWeb.ViewerLive do
   end
 
   @impl true
-  def handle_params(params, _uri, %{assigns: %{state: state}} = socket)
-      when state in [:entering, :room, :reading] do
-    link = socket.assigns.link
+  def handle_params(params, uri, socket) do
+    socket = assign(socket, :current_path, URI.parse(uri).path)
 
+    case socket.assigns.state do
+      # Just mounted: the link was checked a moment ago.
+      :entering ->
+        navigate(params, socket)
+
+      state when state in [:room, :reading] ->
+        case refresh_link(socket) do
+          {:ok, socket} -> navigate(params, socket)
+          :revoked -> {:noreply, reload(socket)}
+        end
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  defp navigate(params, %{assigns: %{state: state, link: link}} = socket) do
     cond do
       # A single document's link.
       not Link.room?(link) ->
@@ -415,7 +438,64 @@ defmodule ReadoutWeb.ViewerLive do
     end
   end
 
-  def handle_params(_params, _uri, socket), do: {:noreply, socket}
+  ## Re-checking access
+
+  # The link as it is now, if its rules haven't changed since this page got in.
+  defp refresh_link(%{assigns: %{link: link}} = socket) do
+    case Links.fetch_public_link(link.slug) do
+      {:ok, %Link{access_revision: rev} = fresh} when rev == link.access_revision ->
+        {:ok, assign(socket, :link, fresh)}
+
+      _ ->
+        :revoked
+    end
+  end
+
+  # While reading: the document must still be shared, at this version.
+  defp recheck(%{assigns: %{state: :reading, link: link} = assigns} = socket) do
+    case Links.check_access(
+           link.slug,
+           link.access_revision,
+           assigns.document.id,
+           assigns.version.id
+         ) do
+      {:ok, _link, _document} -> {:ok, socket}
+      {:error, _} -> {:revoked, reload(socket)}
+    end
+  end
+
+  defp recheck(socket), do: {:revoked, socket}
+
+  # Start over: mount decides again (gate, unavailable, or the new version).
+  defp reload(socket) do
+    socket
+    |> finish_visit()
+    |> push_navigate(to: socket.assigns.current_path)
+  end
+
+  defp revalidate(%{assigns: %{state: :reading}} = socket), do: socket |> recheck() |> elem(1)
+
+  defp revalidate(%{assigns: %{state: state}} = socket)
+       when state in [:room, :gate, :code] do
+    case refresh_link(socket) do
+      {:ok, socket} -> socket
+      :revoked -> reload(socket)
+    end
+  end
+
+  defp revalidate(socket), do: socket
+
+  # Whether a document or room event concerns this link.
+  defp affects?(%{assigns: %{link: %Link{} = link}}, event, id) do
+    case event do
+      :room_updated -> link.room_id == id
+      _ when link.document_id == id -> true
+      _ when is_nil(link.room) -> false
+      _ -> Enum.any?(link.room.documents, &(&1.id == id))
+    end
+  end
+
+  defp affects?(_socket, _event, _id), do: false
 
   defp start_reading(socket, document) do
     {email, verified?} = socket.assigns.access
@@ -434,27 +514,39 @@ defmodule ReadoutWeb.ViewerLive do
       |> assign(:watermark, watermark(socket.assigns.link, email))
 
     if connected?(socket) do
-      visit =
-        Links.start_visit(socket.assigns.link, %{
-          document: document,
-          email: email,
-          email_verified: verified?,
-          device_id: socket.assigns.device_id,
-          ip: socket.assigns.client_ip || nil,
-          user_agent: socket.assigns.user_agent || nil
-        })
+      case new_visit(socket, document) do
+        {:ok, visit} ->
+          if is_nil(socket.assigns.tracker), do: Process.send_after(self(), :tick, @tick_ms)
 
-      if is_nil(socket.assigns.tracker), do: Process.send_after(self(), :tick, @tick_ms)
+          socket
+          |> assign(:visit, visit)
+          |> assign(:visit_token, ViewerAccess.sign_visit(visit.id, link_revision(socket)))
+          |> assign(:tracker, Tracker.new(version.page_count, now()))
+          |> track_presence()
+          |> show_content(version)
 
-      socket
-      |> assign(visit: visit, visit_token: ViewerAccess.sign_visit(visit.id))
-      |> assign(:tracker, Tracker.new(version.page_count, now()))
-      |> track_presence()
-      |> show_content(version)
+        {:error, :used_up} ->
+          assign(socket, state: :unavailable, reason: :used_up)
+      end
     else
       socket |> stream(:pages, [], reset: true) |> stream(:thumbs, [], reset: true)
     end
   end
+
+  defp new_visit(socket, document) do
+    %{link: link, email: email, verified: verified?} = socket.assigns
+
+    Links.start_visit(link, %{
+      document: document,
+      email: email,
+      email_verified: verified?,
+      device_id: socket.assigns.device_id,
+      ip: socket.assigns.client_ip || nil,
+      user_agent: socket.assigns.user_agent || nil
+    })
+  end
+
+  defp link_revision(socket), do: socket.assigns.link.access_revision
 
   defp watermark(%Link{watermark: true}, email) do
     stamp = Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %H:%M UTC")
@@ -470,62 +562,14 @@ defmodule ReadoutWeb.ViewerLive do
   ## Gate
 
   @impl true
-  def handle_event("gate", %{"gate" => params}, %{assigns: %{state: :gate, link: link}} = socket) do
-    params =
-      if socket.assigns.known_email,
-        do: Map.put(params, "email", socket.assigns.known_email),
-        else: params
-
-    case Links.check_gate(link, params, socket.assigns.client_key) do
-      {:ok, email} ->
-        cond do
-          not Links.admits?(link, %{device_id: socket.assigns.device_id, email: email}) ->
-            {:noreply, assign(socket, :gate_error, gate_error(:used_up))}
-
-          not link.require_verification ->
-            {:noreply, grant(socket, email, false)}
-
-          socket.assigns.known_email == email ->
-            {:noreply, grant(socket, email, true)}
-
-          not Readout.Mailer.enabled?() ->
-            {:noreply,
-             assign(
-               socket,
-               :gate_error,
-               gettext("Email verification isn't available right now. Please contact the sender.")
-             )}
-
-          true ->
-            send_code(socket, email)
-        end
-
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> assign(:gate_error, gate_error(reason))
-         |> assign(:gate_form, to_form(Map.put(params, "password", ""), as: "gate"))}
+  # The gate, the code and resending it decide with the link as it is now; if
+  # its rules changed since the page loaded, the page reloads instead.
+  def handle_event(event, params, %{assigns: %{state: state}} = socket)
+      when event in ["gate", "verify", "resend"] and state in [:gate, :code] do
+    case refresh_link(socket) do
+      {:ok, socket} -> gate_event(event, params, socket)
+      :revoked -> {:noreply, reload(socket)}
     end
-  end
-
-  def handle_event("verify", %{"code" => code}, %{assigns: %{state: :code}} = socket) do
-    %{link: link, email: email} = socket.assigns
-
-    with :ok <-
-           Readout.RateLimit.hit(
-             {:verify, link.id, socket.assigns.client_key},
-             20,
-             :timer.minutes(10)
-           ),
-         :ok <- Links.verify_code(link, email, code) do
-      {:noreply, grant(socket, email, true)}
-    else
-      {:error, reason} -> {:noreply, assign(socket, :gate_error, gate_error(reason))}
-    end
-  end
-
-  def handle_event("resend", _params, %{assigns: %{state: :code}} = socket) do
-    send_code(socket, socket.assigns.email)
   end
 
   def handle_event("change_email", _params, socket) do
@@ -569,16 +613,83 @@ defmodule ReadoutWeb.ViewerLive do
     end
   end
 
-  # Spreadsheets: switching sheets moves the reader to that "page".
-  def handle_event("sheet:select" = event, params, socket) do
-    socket = ReadoutWeb.SheetView.handle_event(event, params, socket)
-    handle_event("page", %{"page" => socket.assigns.sheet.index}, socket)
+  # Spreadsheets: rows are served from the LiveView, so every sheet event
+  # re-checks access first. Switching sheets moves the reader to that "page".
+  def handle_event("sheet:" <> _ = event, params, socket) do
+    case recheck(socket) do
+      {:ok, socket} ->
+        socket = ReadoutWeb.SheetView.handle_event(event, params, socket)
+
+        if event == "sheet:select",
+          do: handle_event("page", %{"page" => socket.assigns.sheet.index}, socket),
+          else: {:noreply, socket}
+
+      {:revoked, socket} ->
+        {:noreply, socket}
+    end
   end
 
-  def handle_event("sheet:" <> _ = event, params, socket),
-    do: {:noreply, ReadoutWeb.SheetView.handle_event(event, params, socket)}
-
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  defp gate_event("gate", %{"gate" => params}, %{assigns: %{state: :gate, link: link}} = socket) do
+    params =
+      if socket.assigns.known_email,
+        do: Map.put(params, "email", socket.assigns.known_email),
+        else: params
+
+    case Links.check_gate(link, params, socket.assigns.client_key) do
+      {:ok, email} ->
+        cond do
+          not Links.admits?(link, %{device_id: socket.assigns.device_id, email: email}) ->
+            {:noreply, assign(socket, :gate_error, gate_error(:used_up))}
+
+          not link.require_verification ->
+            {:noreply, grant(socket, email, false)}
+
+          socket.assigns.known_email == email ->
+            {:noreply, grant(socket, email, true)}
+
+          not Readout.Mailer.enabled?() ->
+            {:noreply,
+             assign(
+               socket,
+               :gate_error,
+               gettext("Email verification isn't available right now. Please contact the sender.")
+             )}
+
+          true ->
+            send_code(socket, email)
+        end
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> assign(:gate_error, gate_error(reason))
+         |> assign(:gate_form, to_form(Map.put(params, "password", ""), as: "gate"))}
+    end
+  end
+
+  defp gate_event("verify", %{"code" => code}, %{assigns: %{state: :code}} = socket) do
+    %{link: link, email: email} = socket.assigns
+
+    with :ok <-
+           Readout.RateLimit.hit(
+             {:verify, link.id, socket.assigns.client_key},
+             20,
+             :timer.minutes(10)
+           ),
+         :ok <- Links.verify_code(link, email, code) do
+      {:noreply, grant(socket, email, true)}
+    else
+      {:error, reason} -> {:noreply, assign(socket, :gate_error, gate_error(reason))}
+    end
+  end
+
+  defp gate_event("resend", _params, %{assigns: %{state: :code}} = socket) do
+    send_code(socket, socket.assigns.email)
+  end
+
+  defp gate_event(_event, _params, socket), do: {:noreply, socket}
 
   # Page images (the viewer hook reports pages), or sheets (the server starts
   # the reader on sheet 1).
@@ -599,18 +710,32 @@ defmodule ReadoutWeb.ViewerLive do
 
   @impl true
   def handle_info(:tick, %{assigns: %{tracker: %Tracker{} = tracker}} = socket) do
-    Process.send_after(self(), :tick, @tick_ms)
     socket = flush(socket)
 
-    if Tracker.ended?(tracker, now()) do
-      # Gone for a while: end this visit. Coming back starts a new one.
-      {:noreply, finish_visit(socket)}
-    else
-      {:noreply, socket}
+    case recheck(socket) do
+      {:revoked, socket} ->
+        {:noreply, socket}
+
+      {:ok, socket} ->
+        Process.send_after(self(), :tick, @tick_ms)
+
+        # Gone for a while: end this visit. Coming back starts a new one.
+        if Tracker.ended?(tracker, now()),
+          do: {:noreply, finish_visit(socket)},
+          else: {:noreply, socket}
     end
   end
 
   def handle_info(:tick, socket), do: {:noreply, socket}
+
+  # The link, its document or its room changed (ids only): re-check.
+  def handle_info({event, id}, socket) when is_atom(event) and is_binary(id) do
+    if affects?(socket, event, id),
+      do: {:noreply, revalidate(socket)},
+      else: {:noreply, socket}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   defp flush(%{assigns: %{tracker: %Tracker{} = tracker, visit: visit}} = socket) do
     {tracker, ms, views} = Tracker.flush(tracker, now())
@@ -635,22 +760,18 @@ defmodule ReadoutWeb.ViewerLive do
   defp ensure_visit(
          %{assigns: %{state: :reading, tracker: nil, visit: %{ended_at: %DateTime{}}}} = socket
        ) do
-    %{link: link, email: email, verified: verified?, document: document} = socket.assigns
+    with {:ok, socket} <- recheck(socket),
+         {:ok, visit} <- new_visit(socket, socket.assigns.document) do
+      Process.send_after(self(), :tick, @tick_ms)
 
-    visit =
-      Links.start_visit(link, %{
-        document: document,
-        email: email,
-        email_verified: verified?,
-        device_id: socket.assigns.device_id,
-        ip: socket.assigns.client_ip || nil,
-        user_agent: socket.assigns.user_agent || nil
-      })
-
-    socket
-    |> assign(:visit, visit)
-    |> assign(:tracker, Tracker.new(socket.assigns.version.page_count, now()))
-    |> track_presence()
+      socket
+      |> assign(:visit, visit)
+      |> assign(:tracker, Tracker.new(socket.assigns.version.page_count, now()))
+      |> track_presence()
+    else
+      {:revoked, socket} -> socket
+      {:error, :used_up} -> reload(socket)
+    end
   end
 
   defp ensure_visit(socket), do: socket

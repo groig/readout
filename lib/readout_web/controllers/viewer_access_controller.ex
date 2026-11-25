@@ -2,7 +2,9 @@ defmodule ReadoutWeb.ViewerAccessController do
   @moduledoc """
   Turns a passed gate into a session grant (and, for verified emails, a
   30-day device cookie). The gate LiveView posts here with a short-lived
-  signed token; nothing from the form itself is trusted.
+  signed token; nothing from the form itself is trusted. A token issued under
+  rules that have since changed (another revision) is refused: the viewer
+  goes back to the gate.
   """
   use ReadoutWeb, :controller
 
@@ -11,11 +13,11 @@ defmodule ReadoutWeb.ViewerAccessController do
 
   def create(conn, %{"slug" => slug, "grant" => token}) do
     with {:ok, link} <- Links.fetch_public_link(slug),
-         {:ok, %{"link_id" => link_id, "email" => email, "verified" => verified?}} <-
+         {:ok, %{"link_id" => link_id, "rev" => rev, "email" => email, "verified" => verified?}} <-
            ViewerAccess.verify_grant(token),
-         true <- link_id == link.id do
+         true <- link_id == link.id and rev == link.access_revision do
       conn
-      |> ViewerAccess.put_grant(link.id, email, verified?)
+      |> ViewerAccess.put_grant(link, email, verified?)
       |> then(
         &if(verified? and email, do: ViewerAccess.remember_verified(&1, slug, email), else: &1)
       )

@@ -15,8 +15,14 @@ defmodule ReadoutWeb.ViewerFileControllerTest do
     version = doc.current_version
     :ok = Storage.put_file(Version.page_key(version, 1, 1600), file_path("sample.pdf"))
     {:ok, link} = Links.fetch_public_link(link.slug)
-    visit = Links.start_visit(link, %{email: "ana@client.com"})
-    %{scope: scope, doc: doc, link: link, token: ViewerAccess.sign_visit(visit.id)}
+    visit = Links.start_visit!(link, %{email: "ana@client.com"})
+
+    %{
+      scope: scope,
+      doc: doc,
+      link: link,
+      token: ViewerAccess.sign_visit(visit.id, link.access_revision)
+    }
   end
 
   test "serves pages with a visit token", %{conn: conn, link: link, token: token} do

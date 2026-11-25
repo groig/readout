@@ -8,8 +8,10 @@ defmodule Readout.Documents.Sheets do
   as JSON (`sheets/<n>.json`) for the viewer, and its time is tracked like a
   page's.
 
-  Limits keep the viewer fast: #{20_000} rows and #{200} columns per sheet,
-  #{1_000} characters per cell. Truncation is recorded and shown.
+  Limits keep the viewer fast and the server safe: #{20_000} rows and
+  #{200} columns per sheet, #{1_000} characters per cell, and at most
+  `:sheet_max_mb` (32 MB) of CSV read per sheet. They apply while reading,
+  before anything is kept. Truncation is recorded and shown.
   """
 
   alias Readout.Documents.{Tools, Version}
@@ -30,10 +32,10 @@ defmodule Readout.Documents.Sheets do
   @doc "Reads every sheet of a spreadsheet file."
   @spec extract(Path.t(), atom(), Path.t()) :: {:ok, [sheet()]} | {:error, term()}
   def extract(input, :csv, _workdir) do
-    with {:ok, binary} <- File.read(input) do
+    with {:ok, binary, cut?} <- read_capped(input) do
       case parse_csv(binary) do
         [] -> {:error, :no_pages}
-        rows -> {:ok, [build_sheet("Sheet 1", rows)]}
+        rows -> {:ok, [build_sheet("Sheet 1", rows, cut?)]}
       end
     end
   end
@@ -63,8 +65,8 @@ defmodule Readout.Documents.Sheets do
       sheets =
         for [_, name, path] <- Regex.scan(~r/Writing sheet (.+?) -> (.+\.csv)/, output),
             File.regular?(String.trim(path)) do
-          rows = path |> String.trim() |> File.read!() |> parse_csv()
-          build_sheet(name, rows)
+          {:ok, binary, cut?} = path |> String.trim() |> read_capped()
+          build_sheet(name, parse_csv(binary), cut?)
         end
         |> Enum.reject(&(&1.header == [] and &1.rows == []))
 
@@ -72,13 +74,38 @@ defmodule Readout.Documents.Sheets do
     end
   end
 
-  defp build_sheet(name, rows) do
-    rows = Enum.map(rows, &Enum.map(&1, fn cell -> String.slice(cell, 0, @max_cell) end))
+  # Reads at most `:sheet_max_mb` of a CSV file, cut at the last line break.
+  defp read_capped(path) do
+    max = (Application.get_env(:readout, Readout.Documents)[:sheet_max_mb] || 32) * 1024 * 1024
 
+    with {:ok, io} <- File.open(path, [:read, :binary]) do
+      try do
+        case IO.binread(io, max + 1) do
+          data when is_binary(data) and byte_size(data) > max ->
+            data = binary_part(data, 0, max)
+
+            case :binary.matches(data, "\n") do
+              [] -> {:ok, data, true}
+              matches -> {:ok, binary_part(data, 0, elem(List.last(matches), 0)), true}
+            end
+
+          data when is_binary(data) ->
+            {:ok, data, false}
+
+          _ ->
+            {:ok, "", false}
+        end
+      after
+        File.close(io)
+      end
+    end
+  end
+
+  defp build_sheet(name, rows, cut?) do
     {rows, truncated?} =
       if length(rows) > @max_rows + 1,
         do: {Enum.take(rows, @max_rows + 1), true},
-        else: {rows, false}
+        else: {rows, cut?}
 
     width = rows |> Enum.map(&length/1) |> Enum.max(fn -> 0 end) |> min(@max_cols)
     rows = Enum.map(rows, fn row -> row |> Enum.take(width) |> pad(width) end)
@@ -155,11 +182,16 @@ defmodule Readout.Documents.Sheets do
 
   ## CSV (RFC 4180, with a sniffed delimiter)
 
-  @doc "Parses CSV text into rows of strings. Handles quotes, escaped quotes and newlines in quotes."
+  @doc """
+  Parses CSV text into rows of strings. Handles quotes, escaped quotes and
+  newlines in quotes. Fields are sliced out of the input (never built a
+  character at a time), and the limits apply while parsing: at most
+  #{@max_rows + 1} rows, #{@max_cols} cells per row, #{@max_cell} characters
+  per cell.
+  """
   def parse_csv(binary) do
-    text = binary |> to_utf8() |> String.trim_leading("﻿")
-    delimiter = sniff_delimiter(text)
-    do_parse(text, delimiter, [], [], [], false)
+    text = binary |> to_utf8() |> String.trim_leading("\uFEFF")
+    field(text, sniff_delimiter(text), [], 0, [], 0)
   end
 
   defp to_utf8(binary) do
@@ -175,52 +207,91 @@ defmodule Readout.Documents.Sheets do
     |> Enum.max_by(&(first |> String.split(&1) |> length()))
   end
 
-  # A small state machine over the binary. State: {delimiter, field (reversed
-  # chunks), row (reversed cells), rows (reversed), row count, in quotes?}.
-  defp do_parse(text, d, field, row, rows, quoted?),
-    do: parse(text, {d, field, row, rows, 0, quoted?})
+  # At the start of a field. `cells` is the current row (reversed), `nc` its
+  # cell count; `rows` the finished rows (reversed), `n` their count.
+  defp field("", _d, [], _nc, rows, _n), do: Enum.reverse(rows)
 
-  defp parse("", {_d, field, row, rows, _n, _q}), do: finish(field, row, rows)
+  defp field(<<?", rest::binary>>, d, cells, nc, rows, n),
+    do: quoted(rest, d, [], cells, nc, rows, n)
 
-  defp parse(<<?", ?", rest::binary>>, {d, f, r, rs, n, true}),
-    do: parse(rest, {d, [?" | f], r, rs, n, true})
+  defp field(bin, d, cells, nc, rows, n) do
+    case :binary.match(bin, [d, "\r\n", "\n"]) do
+      :nomatch ->
+        end_field("", :end, bin, d, cells, nc, rows, n)
 
-  defp parse(<<?", rest::binary>>, {d, f, r, rs, n, true}),
-    do: parse(rest, {d, f, r, rs, n, false})
+      {pos, len} ->
+        rest = binary_part(bin, pos + len, byte_size(bin) - pos - len)
 
-  defp parse(<<?", rest::binary>>, {d, [], r, rs, n, false}),
-    do: parse(rest, {d, [], r, rs, n, true})
-
-  defp parse(<<c::utf8, rest::binary>>, {d, f, r, rs, n, true}),
-    do: parse(rest, {d, [<<c::utf8>> | f], r, rs, n, true})
-
-  defp parse(<<"\r\n", rest::binary>>, {_d, _f, _r, _rs, _n, false} = st), do: next_row(rest, st)
-  defp parse(<<"\n", rest::binary>>, {_d, _f, _r, _rs, _n, false} = st), do: next_row(rest, st)
-
-  defp parse(<<c::utf8, rest::binary>> = bin, {d, f, r, rs, n, false}) do
-    if String.starts_with?(bin, d) do
-      skip = byte_size(d)
-      parse(binary_part(bin, skip, byte_size(bin) - skip), {d, [], [cell(f) | r], rs, n, false})
-    else
-      parse(rest, {d, [<<c::utf8>> | f], r, rs, n, false})
+        end_field(
+          rest,
+          binary_part(bin, pos, len),
+          binary_part(bin, 0, pos),
+          d,
+          cells,
+          nc,
+          rows,
+          n
+        )
     end
   end
 
-  # Invalid bytes (shouldn't happen after to_utf8/1): skip them.
-  defp parse(<<_byte, rest::binary>>, st), do: parse(rest, st)
+  # Inside quotes: up to the next quote; "" is an escaped quote. Text between
+  # the closing quote and the separator is kept (leniently).
+  defp quoted(bin, d, acc, cells, nc, rows, n) do
+    case :binary.match(bin, "\"") do
+      :nomatch ->
+        end_field("", :end, [acc, bin], d, cells, nc, rows, n)
 
-  defp next_row(rest, {d, f, r, rs, n, false}) do
-    rows = [Enum.reverse([cell(f) | r]) | rs]
-    # Stop reading far beyond what the viewer keeps.
-    if n + 1 > @max_rows + 1,
-      do: Enum.reverse(rows),
-      else: parse(rest, {d, [], [], rows, n + 1, false})
+      {pos, 1} ->
+        chunk = binary_part(bin, 0, pos)
+
+        case binary_part(bin, pos + 1, byte_size(bin) - pos - 1) do
+          <<?", more::binary>> ->
+            quoted(more, d, [acc, chunk, ?"], cells, nc, rows, n)
+
+          rest ->
+            case :binary.match(rest, [d, "\r\n", "\n"]) do
+              :nomatch ->
+                end_field("", :end, [acc, chunk, rest], d, cells, nc, rows, n)
+
+              {p, l} ->
+                after_sep = binary_part(rest, p + l, byte_size(rest) - p - l)
+                value = [acc, chunk, binary_part(rest, 0, p)]
+                end_field(after_sep, binary_part(rest, p, l), value, d, cells, nc, rows, n)
+            end
+        end
+    end
   end
 
-  defp finish([], [], rows), do: Enum.reverse(rows)
-  defp finish(field, row, rows), do: Enum.reverse([Enum.reverse([cell(field) | row]) | rows])
+  defp end_field(rest, sep, value, d, cells, nc, rows, n) do
+    cells = if nc < @max_cols, do: [cell(value) | cells], else: cells
 
-  defp cell(field), do: field |> Enum.reverse() |> IO.iodata_to_binary()
+    cond do
+      sep == d ->
+        # A delimiter at the very end leaves one empty last cell.
+        if rest == "",
+          do: Enum.reverse([Enum.reverse(["" | cells]) | rows]),
+          else: field(rest, d, cells, nc + 1, rows, n)
+
+      sep == :end ->
+        Enum.reverse([Enum.reverse(cells) | rows])
+
+      # One row past what the viewer keeps is enough to know it's truncated.
+      n + 1 > @max_rows + 1 ->
+        Enum.reverse([Enum.reverse(cells) | rows])
+
+      true ->
+        field(rest, d, [], 0, [Enum.reverse(cells) | rows], n + 1)
+    end
+  end
+
+  # At most @max_cell characters, copied out of the input.
+  defp cell(value) do
+    value
+    |> IO.iodata_to_binary()
+    |> String.slice(0, @max_cell)
+    |> :binary.copy()
+  end
 
   ## Storage
 

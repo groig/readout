@@ -10,5 +10,14 @@ exclude =
     [:tools]
   end
 
+# Tests of the tools' isolation need unprivileged user namespaces.
+exclude =
+  if missing_tools == [] and not Readout.Documents.Tools.network_isolation?() do
+    IO.puts("Skipping :namespaces tests: unprivileged user namespaces are unavailable")
+    [:namespaces | exclude]
+  else
+    exclude
+  end
+
 ExUnit.start(exclude: exclude)
 Ecto.Adapters.SQL.Sandbox.mode(Readout.Repo, :manual)

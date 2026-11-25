@@ -1,8 +1,10 @@
 defmodule ReadoutWeb.ViewerFileController do
   @moduledoc """
   Page images and downloads for the public viewer. Every request needs a
-  visit-bound token (two hours) and re-checks the link: disabling or expiring
-  a link cuts off images immediately.
+  visit-bound token (two hours) and re-checks the current state with
+  `Readout.Links.check_access/4`: disabling, expiring or changing the link's
+  rules, removing the document from its room or publishing a new version cuts
+  off the old URLs immediately.
 
   For links with a watermark, images and the PDF download are watermarked
   per visit (`Readout.Documents.Watermark`), and originals (Word, Excel...)
@@ -25,6 +27,7 @@ defmodule ReadoutWeb.ViewerFileController do
       |> put_resp_header("cache-control", "private, max-age=3600")
       |> send_file(200, path)
     else
+      {:error, :busy} -> busy(conn)
       _ -> not_found(conn)
     end
   end
@@ -32,6 +35,7 @@ defmodule ReadoutWeb.ViewerFileController do
   def download(conn, %{"slug" => slug, "token" => token, "kind" => kind}) do
     with {:ok, link, visit, version} <- authorize(slug, token),
          true <- link.allow_download,
+         :ok <- throttle(conn, link),
          {:ok, path, ext, type} <- file_for(link, visit, version, kind) do
       document = Repo.get!(Readout.Documents.Document, visit.document_id)
 
@@ -53,17 +57,33 @@ defmodule ReadoutWeb.ViewerFileController do
       )
       |> send_file(200, path)
     else
+      {:error, reason} when reason in [:busy, :rate_limited] -> busy(conn)
       _ -> not_found(conn)
     end
   end
 
+  # Watermarked downloads render the whole document: a few per client.
+  defp throttle(conn, %{watermark: true}) do
+    client = conn.remote_ip |> :inet.ntoa() |> to_string()
+    Readout.RateLimit.hit({:watermarked_download, client}, 10, :timer.minutes(10))
+  end
+
+  defp throttle(_conn, _link), do: :ok
+
+  defp busy(conn) do
+    conn
+    |> put_resp_header("retry-after", "30")
+    |> put_resp_content_type("text/plain")
+    |> send_resp(503, "Busy, try again shortly")
+  end
+
   defp authorize(slug, token) do
-    with {:ok, visit_id} <- ViewerAccess.verify_visit(token),
-         {:ok, link} <- Links.fetch_public_link(slug),
+    with {:ok, visit_id, revision} <- ViewerAccess.verify_visit(token),
          %{} = visit <- Links.get_visit(visit_id),
-         true <- visit.link_id == link.id,
-         %Version{status: :ready} = version <- Repo.get(Version, visit.version_id) do
-      {:ok, link, visit, version}
+         {:ok, link, document} <-
+           Links.check_access(slug, revision, visit.document_id, visit.version_id),
+         true <- visit.link_id == link.id do
+      {:ok, link, visit, document.current_version}
     else
       _ -> :error
     end

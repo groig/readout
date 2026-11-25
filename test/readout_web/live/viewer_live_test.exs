@@ -72,11 +72,8 @@ defmodule ReadoutWeb.ViewerLiveTest do
     lv |> form("#gate-form", gate: %{password: "letmein"}) |> render_submit()
     conn = follow_trigger_action(form(lv, "#access-form"), conn)
 
-    Readout.Repo.update_all(Readout.Links.Link,
-      set: [updated_at: DateTime.add(DateTime.utc_now(:second), 60)]
-    )
-
-    _ = doc
+    # Same second, new password: the old grant is void.
+    {:ok, _} = Links.update_link(scope, doc, link, %{"password" => "newpass"})
     {:ok, lv, _} = live(recycle(conn), ~p"/v/#{link.slug}")
     assert has_element?(lv, "#gate-form")
   end

@@ -70,7 +70,9 @@ defmodule Readout.Documents.PdfWriter do
             do: String.pad_leading(Integer.to_string(off), 10, "0") <> " 00000 n \n"
 
     trailer = "trailer\n<< /Size #{count} /Root 1 0 R >>\nstartxref\n#{xref_at}\n%%EOF\n"
-    File.write(dest, [body, xref, trailer])
+    # Written aside and renamed, so a reader never sees half a file.
+    with :ok <- File.write(dest <> ".part", [body, xref, trailer]),
+         do: File.rename(dest <> ".part", dest)
   end
 
   defp fmt(n) when is_float(n), do: :erlang.float_to_binary(n, decimals: 2)

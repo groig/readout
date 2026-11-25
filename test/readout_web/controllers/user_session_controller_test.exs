@@ -60,6 +60,30 @@ defmodule ReadoutWeb.UserSessionControllerTest do
       assert redirected_to(conn) == ~p"/users/log-in"
     end
 
+    test "throttles attempts per account before checking the password, known or not", %{
+      conn: conn,
+      user: user
+    } do
+      for email <- [user.email, "nobody-#{System.unique_integer([:positive])}@example.com"] do
+        for _ <- 1..10 do
+          conn =
+            post(conn, ~p"/users/log-in", %{"user" => %{"email" => email, "password" => "bad"}})
+
+          assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Invalid email or password"
+        end
+
+        # Even the right password waits now; the answer is the same for both.
+        conn =
+          post(conn, ~p"/users/log-in", %{
+            "user" => %{"email" => String.upcase(email), "password" => valid_user_password()}
+          })
+
+        refute get_session(conn, :user_token)
+        assert redirected_to(conn) == ~p"/users/log-in"
+        assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Too many attempts"
+      end
+    end
+
     test "rejects deactivated users", %{conn: conn} do
       user = deactivated_user_fixture()
 

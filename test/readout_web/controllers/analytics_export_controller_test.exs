@@ -13,7 +13,7 @@ defmodule ReadoutWeb.AnalyticsExportControllerTest do
     {doc, link} = shared_fixture(scope)
     {:ok, link} = Links.fetch_public_link(link.slug)
 
-    visit = Links.start_visit(link, %{email: "=cmd@evil.com", device_id: "dev-1"})
+    visit = Links.start_visit!(link, %{email: "=cmd@evil.com", device_id: "dev-1"})
     _ = Analytics.record(visit, %{1 => 12_000, 2 => 3_500}, %{1 => 1, 2 => 2}, 2)
 
     %{doc: doc, visit: visit}

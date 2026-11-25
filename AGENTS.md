@@ -36,14 +36,22 @@ These rules were settled while building the app and take precedence over the gen
 - **Document events**: don't subscribe to `"documents"` yourself. The shell already does; implement
   `def handle_document_event(event, id, socket)` (returning the socket) in a LiveView to react.
   Re-read through the scope and ignore ids you aren't showing.
-- **External tools** (LibreOffice, poppler, cwebp) run only through `Readout.Documents.Tools.run/3`
-  (timeout + network isolation). Tests that need them are tagged `@moduletag :tools`.
+- **External tools** (LibreOffice, poppler, cwebp, ImageMagick) run only through
+  `Readout.Documents.Tools.run/3` (timeout, limits, scrubbed environment, namespaces) and only
+  on files in a job directory passed as `:cd`: they can't see the storage directory or the cache.
+  Tests that need them are tagged `@moduletag :tools`; isolation tests `:namespaces`.
+- **Logs**: never log request paths or tokens (paths carry credentials); `ReadoutWeb.RequestLog`
+  logs route templates. Add new credential-like parameter names to `:filter_parameters`.
 - **Email**: build messages in `ReadoutWeb.Emails` (translated, HTML + text, escape everything) and
   send with `Readout.Mailer.deliver_later/1`, never `Mailer.deliver/1` from a request. Check
   `Readout.Mailer.enabled?/0` before offering anything that needs email.
 - **Public viewer**: only `/v/*` is public. Anything a viewer fetches carries a visit-bound
-  `ReadoutWeb.ViewerAccess` token and re-checks the link on every request. Rate-limit anything a
-  stranger can trigger (`Readout.RateLimit`, keyed by `ReadoutWeb.ClientIP`).
+  `ReadoutWeb.ViewerAccess` token (with the link's `access_revision`) and goes through
+  `Readout.Links.check_access/4` on every request; anything the viewer LiveView serves itself
+  (sheets, room navigation) re-checks it first. New link fields that affect access must not be
+  listed as cosmetic in `Link.access_changed?/1`. Rate-limit anything a stranger can trigger
+  (`Readout.RateLimit`, keyed by `ReadoutWeb.ClientIP`); bound anything expensive they trigger
+  (`Readout.Documents.RenderQueue`).
 - **Analytics**: the client never reports durations. Anything time-based is measured on the server
   (`Readout.Analytics.Tracker`). Live analytics messages carry ids only; re-read through the scope.
 - **Notifications** are in-app only: create them through `Readout.Notifications` (rows plus a

@@ -13,6 +13,9 @@ share.example.com {
 		reverse_proxy app:4000
 	}
 
+	# The container checks its own health; nobody outside needs /healthz.
+	respond /healthz 404
+
 	# Uploads up to MAX_UPLOAD_MB (plus headroom).
 	request_body {
 		max_size 110MB
@@ -22,6 +25,15 @@ share.example.com {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
+
+	# No access log on purpose: request paths carry credentials (share links,
+	# viewer, sign-in, reset and invitation tokens). If you enable one, drop
+	# the URI, e.g.
+	#   log {
+	#     format filter {
+	#       request>uri delete
+	#     }
+	#   }
 
 	# Caddy sets X-Forwarded-For and X-Forwarded-Proto; Readout trusts them
 	# only from TRUSTED_PROXIES.

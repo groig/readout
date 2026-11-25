@@ -54,4 +54,25 @@ defmodule ReadoutWeb.SheetsViewerTest do
     assert visit.pages_viewed == 2
     assert visit.last_page == 2
   end
+
+  test "an open sheet stops serving rows once the link is disabled or expires", %{
+    scope: scope,
+    doc: doc
+  } do
+    {:ok, link} = Links.create_link(scope, doc, %{"name" => "Board"})
+
+    for change <- [
+          [enabled: false],
+          [expires_at: DateTime.add(DateTime.utc_now(:second), -60)]
+        ] do
+      Repo.update_all(Readout.Links.Link, set: [enabled: true, expires_at: nil])
+      {:ok, viewer, _} = live(build_conn(), ~p"/v/#{link.slug}")
+      assert has_element?(viewer, "#sheets-tab-2")
+
+      # Changed behind the viewer's back (no broadcast): the next event checks.
+      Repo.update_all(Readout.Links.Link, set: change)
+      viewer |> element("#sheets-tab-2") |> render_click()
+      assert_redirect(viewer, ~p"/v/#{link.slug}")
+    end
+  end
 end
